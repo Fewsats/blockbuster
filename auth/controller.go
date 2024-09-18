@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Fewsats/blockbuster/database"
-	"github.com/Fewsats/blockbuster/email"
+	"github.com/fewsats/blockbuster/database"
+	"github.com/fewsats/blockbuster/email"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )

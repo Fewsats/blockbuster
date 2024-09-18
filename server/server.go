@@ -8,9 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/Fewsats/blockbuster/auth"
-	"github.com/Fewsats/blockbuster/config"
-	"github.com/Fewsats/blockbuster/video"
+	"github.com/fewsats/blockbuster/auth"
+	"github.com/fewsats/blockbuster/config"
+	"github.com/fewsats/blockbuster/video"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 )
@@ -28,7 +28,7 @@ func NewServer(logger *slog.Logger, cfg *config.Config, authCtrl *auth.Controlle
 	router.Use(gin.Recovery())
 
 	// Set up session middleware
-	store := cookie.NewStore([]byte(cfg.SessionSecret))
+	store := cookie.NewStore([]byte(cfg.Auth.SessionSecret))
 	router.Use(sessions.Sessions("mysession", store))
 
 	s := &Server{

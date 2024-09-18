@@ -1,37 +1,42 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
-	"github.com/Fewsats/blockbuster/auth"
-	"github.com/Fewsats/blockbuster/config"
-	"github.com/Fewsats/blockbuster/database"
-	"github.com/Fewsats/blockbuster/email"
-	"github.com/Fewsats/blockbuster/server"
-	"github.com/Fewsats/blockbuster/video"
+	"github.com/fewsats/blockbuster/auth"
+	"github.com/fewsats/blockbuster/config"
+	"github.com/fewsats/blockbuster/database"
+	"github.com/fewsats/blockbuster/email"
+	"github.com/fewsats/blockbuster/server"
+	"github.com/fewsats/blockbuster/video"
 )
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	cfg, err := config.LoadConfig()
+	cfg, err := config.LoadConfig(logger)
 	if err != nil {
 		logger.Error("Failed to load config", "error", err)
 		os.Exit(1)
 	}
 
-	db, err := database.NewSQLiteDB(cfg.DatabasePath)
+	db, err := database.NewSQLiteDB(cfg.Store.ConnectionString)
 	if err != nil {
 		logger.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
 	}
 	defer db.Close()
 
-	emailService := email.NewResendService(cfg.ResendAPIKey)
+	emailService := email.NewResendService(cfg.Email.APIKey)
 	authController := auth.NewController(logger, db, emailService, cfg.BaseURL)
 
-	videoController := video.NewController(db, cfg.VideoUploadPath, cfg.ThumbnailUploadPath)
+	// TODO(pol) use cloudflare or external service
+	videoController := video.NewController(db,
+		fmt.Sprintf("%s/%s", cfg.Storage.Local.Path, "videos"),
+		fmt.Sprintf("%s/%s", cfg.Storage.Local.Path, "thumbnails"),
+	)
 
 	srv, err := server.NewServer(logger, cfg, authController, videoController)
 	if err != nil {

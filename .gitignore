@@ -1,8 +1,8 @@
 # Server binary
-platform
+blockbuster
 
 # env config files
-platform.conf
+blockbuster.conf
 .env
 .env.prod
 .env.dev
@@ -17,4 +17,3 @@ venv
 *.db
 
 uploads
-blockbuster
