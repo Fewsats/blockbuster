@@ -7,25 +7,38 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fewsats/blockbuster/database"
 	"github.com/fewsats/blockbuster/email"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
 type Controller struct {
-	logger       *slog.Logger
-	db           *database.SQLiteDB
 	emailService *email.ResendService
-	baseURL      string
+	cfg          *Config
+
+	store  Store
+	logger *slog.Logger
 }
 
-func NewController(logger *slog.Logger, db *database.SQLiteDB, emailService *email.ResendService, baseURL string) *Controller {
+type User struct {
+	ID       int64
+	Email    string
+	Verified bool
+}
+
+type LoginRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+func NewController(emailService *email.ResendService, logger *slog.Logger,
+	store Store, cfg *Config) *Controller {
+
 	return &Controller{
-		logger:       logger,
-		db:           db,
 		emailService: emailService,
-		baseURL:      baseURL,
+		cfg:          cfg,
+
+		logger: logger,
+		store:  store,
 	}
 }
 
@@ -47,9 +60,7 @@ func (c *Controller) RegisterAuthMiddleware(router *gin.Engine) {
 }
 
 func (c *Controller) LoginHandler(ctx *gin.Context) {
-	var req struct {
-		Email string `json:"email" binding:"required,email"`
-	}
+	var req LoginRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
@@ -64,18 +75,15 @@ func (c *Controller) LoginHandler(ctx *gin.Context) {
 	}
 
 	// TODO(maybe set higher expiration so we can include here a "welcome" email?)
-	expiration := time.Now().Add(time.Minute * 15)
-	err = c.db.StoreToken(req.Email, token, expiration)
+	expiration := time.Now().Add(time.Duration(c.cfg.TokenExpirationMinutes) * time.Minute)
+	err = c.store.StoreToken(req.Email, token, expiration)
 	if err != nil {
 		c.logger.Error("Failed to store token", "error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process login request"})
 		return
 	}
 
-	magicLink := c.baseURL + "/auth/verify?token=" + token
-
-	c.logger.Info("Sending magic link", "email", req.Email, "magicLink", magicLink)
-	err = c.emailService.SendMagicLink(req.Email, magicLink)
+	err = c.emailService.SendMagicLink(req.Email, token)
 	if err != nil {
 		c.logger.Error("Failed to send email", "error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send magic link email. Please try again later."})
@@ -92,7 +100,7 @@ func (c *Controller) VerifyTokenHandler(ctx *gin.Context) {
 		return
 	}
 
-	email, err := c.db.VerifyToken(token)
+	email, err := c.store.VerifyToken(token)
 	if err != nil {
 		c.logger.Error("Failed to verify token", "error", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})

@@ -29,8 +29,8 @@ func main() {
 	}
 	defer db.Close()
 
-	emailService := email.NewResendService(cfg.Email.APIKey)
-	authController := auth.NewController(logger, db, emailService, cfg.BaseURL)
+	emailService := email.NewResendService(logger, &cfg.Email)
+	authController := auth.NewController(emailService, logger, db, &cfg.Auth)
 
 	// TODO(pol) use cloudflare or external service
 	videoController := video.NewController(db,

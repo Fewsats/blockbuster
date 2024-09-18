@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
+	"github.com/fewsats/blockbuster/auth"
 	"github.com/fewsats/blockbuster/email"
 	"github.com/fewsats/blockbuster/store"
 	"github.com/gin-gonic/gin"
@@ -16,11 +16,6 @@ const (
 	DefaultLogLevel = "info"
 	DefaultPort     = 8080
 )
-
-type AuthConfig struct {
-	TokenExpiration string `long:"token_expiration" description:"Token expiration duration"`
-	SessionSecret   string `long:"session_secret" description:"Session secret"`
-}
 
 type EmailConfig struct {
 	Provider string `long:"provider" description:"Email provider"`
@@ -40,7 +35,7 @@ type Config struct {
 	GinMode  string `long:"gin_mode" description:"Gin mode {debug, release}"`
 	BaseURL  string `long:"base_url" description:"Base URL for the application"`
 
-	Auth    AuthConfig    `group:"auth" namespace:"auth"`
+	Auth    auth.Config   `group:"auth" namespace:"auth"`
 	Email   email.Config  `group:"email" namespace:"email"`
 	Storage StorageConfig `group:"storage" namespace:"storage"`
 	Store   store.Config  `group:"store" namespace:"store"`
@@ -81,9 +76,6 @@ func DefaultConfig() *Config {
 		Port:     DefaultPort,
 		GinMode:  gin.DebugMode,
 		BaseURL:  "http://localhost:8080",
-		Auth: AuthConfig{
-			SessionSecret: "super-secret-string",
-		},
 		Storage: StorageConfig{
 			Provider: "local",
 			Local: struct {
@@ -92,6 +84,7 @@ func DefaultConfig() *Config {
 				Path: "./storage",
 			},
 		},
+		Auth:  *auth.DefaultConfig(),
 		Email: *email.DefaultConfig(),
 		Store: *store.DefaultConfig(),
 	}
@@ -123,12 +116,6 @@ func LoadConfig(logger *slog.Logger) (*Config, error) {
 	if _, err := flagParser.Parse(); err != nil {
 		return nil, err
 	}
-
-	tokenExp, err := time.ParseDuration(cfg.Auth.TokenExpiration)
-	if err != nil {
-		return nil, fmt.Errorf("invalid token expiration duration: %w", err)
-	}
-	cfg.Auth.TokenExpiration = tokenExp.String()
 
 	return cfg, nil
 }
