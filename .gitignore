@@ -1,0 +1,20 @@
+# Server binary
+platform
+
+# env config files
+platform.conf
+.env
+.env.prod
+.env.dev
+
+.vscode
+
+venv
+*pdf
+*jpg
+*.json
+
+*.db
+
+uploads
+blockbuster
