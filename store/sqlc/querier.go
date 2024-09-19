@@ -15,16 +15,14 @@ type Querier interface {
 	CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error)
 	DeleteExpiredTokens(ctx context.Context, expiration time.Time) error
 	DeleteToken(ctx context.Context, token string) error
-	DeleteVideo(ctx context.Context, id int64) error
+	DeleteVideo(ctx context.Context, externalID string) error
 	GetToken(ctx context.Context, token string) (Token, error)
 	GetUser(ctx context.Context, email string) (User, error)
-	GetVideo(ctx context.Context, id int64) (Video, error)
-	IncrementVideoViews(ctx context.Context, id int64) (Video, error)
+	GetVideo(ctx context.Context, externalID string) (Video, error)
+	IncrementVideoViews(ctx context.Context, externalID string) (Video, error)
 	ListUserVideos(ctx context.Context, userEmail string) ([]Video, error)
-	ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error)
 	SearchVideos(ctx context.Context, arg SearchVideosParams) ([]Video, error)
 	UpdateUserVerified(ctx context.Context, arg UpdateUserVerifiedParams) error
-	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
 	VerifyToken(ctx context.Context, arg VerifyTokenParams) (string, error)
 }
 

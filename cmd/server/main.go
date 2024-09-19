@@ -1,15 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/fewsats/blockbuster/auth"
+	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/fewsats/blockbuster/config"
 	"github.com/fewsats/blockbuster/database"
 	"github.com/fewsats/blockbuster/email"
 	"github.com/fewsats/blockbuster/server"
+	storePkg "github.com/fewsats/blockbuster/store"
+	"github.com/fewsats/blockbuster/utils"
 	"github.com/fewsats/blockbuster/video"
 )
 
@@ -30,13 +32,17 @@ func main() {
 	defer db.Close()
 
 	emailService := email.NewResendService(logger, &cfg.Email)
-	authController := auth.NewController(emailService, logger, db, &cfg.Auth)
+	cloudflareService, err := cloudflare.NewService(&cfg.Cloudflare)
+	if err != nil {
+		logger.Error("Failed to create cloudflare service", "error", err)
+		return
+	}
+	// Initialize the store.
+	clock := utils.NewRealClock()
+	store, err := storePkg.NewStore(logger, &cfg.Store, clock)
 
-	// TODO(pol) use cloudflare or external service
-	videoController := video.NewController(db,
-		fmt.Sprintf("%s/%s", cfg.Storage.Local.Path, "videos"),
-		fmt.Sprintf("%s/%s", cfg.Storage.Local.Path, "thumbnails"),
-	)
+	authController := auth.NewController(emailService, logger, db, &cfg.Auth)
+	videoController := video.NewController(cloudflareService, store, logger)
 
 	srv, err := server.NewServer(logger, cfg, authController, videoController)
 	if err != nil {

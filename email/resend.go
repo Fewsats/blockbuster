@@ -23,7 +23,6 @@ func NewResendService(logger *slog.Logger, cfg *Config) *ResendService {
 }
 
 func (s *ResendService) SendMagicLink(to, token string) error {
-
 	magicLink := s.cfg.BaseURL + "/auth/verify?token=" + token
 	s.logger.Info("Sending magic link", "email", to, "magicLink", magicLink)
 

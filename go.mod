@@ -3,9 +3,11 @@ module github.com/fewsats/blockbuster
 go 1.22.0
 
 require (
+	github.com/aws/aws-sdk-go v1.49.6
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-migrate/migrate/v4 v4.18.1
+	github.com/google/uuid v1.6.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/resendlabs/resend-go v1.7.0
@@ -18,6 +20,7 @@ require (
 	github.com/gorilla/sessions v1.2.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 )
 

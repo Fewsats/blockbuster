@@ -1,146 +1,138 @@
 package video
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"net/http"
-	"path/filepath"
-	"strconv"
-	"time"
 
-	"github.com/fewsats/blockbuster/database"
+	"log/slog"
+
+	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Controller struct {
-	db            *database.SQLiteDB
-	uploadPath    string
-	thumbnailPath string
+	cf *cloudflare.Service
+
+	store  Store
+	logger *slog.Logger
 }
 
-func NewController(db *database.SQLiteDB, uploadPath, thumbnailPath string) *Controller {
+func NewController(cloudflareService *cloudflare.Service, store Store,
+	logger *slog.Logger) *Controller {
+
 	return &Controller{
-		db:            db,
-		uploadPath:    uploadPath,
-		thumbnailPath: thumbnailPath,
+		cf: cloudflareService,
+
+		store:  store,
+		logger: logger,
 	}
 }
 
-func (c *Controller) UploadHandler(ctx *gin.Context) {
-	userEmail, _ := ctx.Get("email")
-	title := ctx.PostForm("title")
-	description := ctx.PostForm("description")
+func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
+	router.POST("/video/upload", c.UploadVideo)
+	router.GET("/video/:id", nil)
+	router.GET("/video/search", nil)
+}
 
-	// Handle video file upload
-	videoFile, err := ctx.FormFile("video")
+func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
+	router.GET("/user/videos", nil)
+	router.DELETE("/video/:id", nil)
+}
+
+type UploadVideoRequest struct {
+	Email        string `form:"email" binding:"required,email"`
+	Title        string `form:"title" binding:"required"`
+	Description  string `form:"description"`
+	PriceInCents int64  `form:"price_in_cents" binding:"required,min=0"`
+	CoverImage   string `form:"cover_image"`
+}
+
+// UploadFileResponse represents a response to uploading a file.
+type UploadVideoResponse struct {
+	VideoID   string `json:"video_id"`
+	UploadURL string `json:"upload_url"`
+}
+
+func (r *UploadVideoRequest) Validate() error {
+	if r.CoverImage == "" {
+		return fmt.Errorf("cover image is required")
+	}
+	return nil
+}
+func (c *Controller) processAndUploadCoverImage(externalID string,
+	coverImageData string) (string, error) {
+
+	coverImageBytes, err := base64.StdEncoding.DecodeString(coverImageData)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "No video file provided"})
+		return "", fmt.Errorf("failed to decode cover image data: %w", err)
+	}
+
+	coverImageReader := bytes.NewReader(coverImageBytes)
+
+	coverURL, err := c.cf.UploadPublicFile(externalID, "cover-images", coverImageReader)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload cover file: %w", err)
+	}
+
+	return coverURL, nil
+}
+
+func (c *Controller) UploadVideo(ctx *gin.Context) {
+	var req UploadVideoRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	videoFileName := filepath.Join(c.uploadPath, fmt.Sprintf("%d_%s", time.Now().UnixNano(), videoFile.Filename))
-	if err := ctx.SaveUploadedFile(videoFile, videoFileName); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save video file"})
+	if err := req.Validate(); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Handle thumbnail upload (optional)
-	var thumbnailFileName string
-	thumbnailFile, err := ctx.FormFile("thumbnail")
-	if err == nil {
-		thumbnailFileName = filepath.Join(c.thumbnailPath, fmt.Sprintf("%d_%s", time.Now().UnixNano(), thumbnailFile.Filename))
-		if err := ctx.SaveUploadedFile(thumbnailFile, thumbnailFileName); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save thumbnail file"})
-			return
-		}
-	}
+	videoID := uuid.New().String()
 
-	// Update to include price
-	priceStr := ctx.PostForm("price")
-	price, err := strconv.ParseFloat(priceStr, 64)
+	coverURL, err := c.processAndUploadCoverImage(
+		videoID, req.CoverImage,
+	)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price"})
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Failed to upload cover image"},
+		)
 		return
 	}
 
-	// Save video metadata to database
-	videoID, err := c.db.CreateVideo(userEmail.(string), title, description, videoFileName, thumbnailFileName, price)
+	uploadURL, err := c.cf.GenerateVideoUploadURL(videoID)
 	if err != nil {
+		c.logger.Error("Failed to generate upload URL", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate upload URL"})
+		return
+	}
+
+	_, err = c.store.CreateVideo(ctx, CreateVideoParams{
+		ExternalID:   videoID,
+		UserEmail:    req.Email,
+		Title:        req.Title,
+		Description:  req.Description,
+		CoverURL:     coverURL,
+		VideoURL:     uploadURL,
+		PriceInCents: req.PriceInCents,
+	})
+
+	if err != nil {
+		c.logger.Error("Failed to create video", "error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save video metadata"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Video uploaded successfully", "videoID": videoID})
-}
-
-func (c *Controller) GetVideoHandler(ctx *gin.Context) {
-	videoID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid video ID"})
-		return
-	}
-
-	video, err := c.db.GetVideo(videoID)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Video not found"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"id":            video.ID,
-		"userEmail":     video.UserEmail,
-		"title":         video.Title,
-		"description":   video.Description,
-		"thumbnailPath": video.ThumbnailPath,
-		"createdAt":     video.CreatedAt,
-	})
-}
-
-func (c *Controller) ServeVideoHandler(ctx *gin.Context) {
-	videoID, err := strconv.ParseInt(ctx.Param("id"), 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid video ID"})
-		return
-	}
-
-	video, err := c.db.GetVideo(videoID)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Video not found"})
-		return
-	}
-
-	ctx.File(video.FilePath)
-}
-
-type UserVideo struct {
-	ID         int64   `json:"id"`
-	Title      string  `json:"title"`
-	Price      float64 `json:"price"`
-	TotalViews int64   `json:"totalViews"`
-}
-
-func (c *Controller) GetUserVideos(ctx *gin.Context) {
-	userEmail, _ := ctx.Get("email")
-	userEmailStr, ok := userEmail.(string)
-	if !ok {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user email"})
-		return
-	}
-
-	videos, err := c.db.GetUserVideos(userEmailStr)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user videos"})
-		return
-	}
-
-	userVideos := make([]UserVideo, len(videos))
-	for i, v := range videos {
-		userVideos[i] = UserVideo{
-			ID:         v.ID,
-			Title:      v.Title,
-			Price:      v.Price,
-			TotalViews: v.TotalViews,
-		}
-	}
-
-	ctx.JSON(http.StatusOK, userVideos)
+	ctx.JSON(
+		http.StatusOK,
+		UploadVideoResponse{
+			VideoID:   videoID,
+			UploadURL: uploadURL,
+		},
+	)
 }

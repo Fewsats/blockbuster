@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fewsats/blockbuster/store/sqlc"
+	"github.com/fewsats/blockbuster/utils"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -30,6 +31,7 @@ type Store struct {
 	db      *sql.DB
 	queries *sqlc.Queries
 	logger  *slog.Logger
+	clock   utils.Clock
 }
 
 func calculateLimitOffset(limit, offset int32) (int32, int32, error) {
@@ -87,10 +89,10 @@ func runMigrations(logger *slog.Logger, cfg *Config) error {
 	return nil
 }
 
-func NewStore(logger *slog.Logger, cfg *Config) (*Store, error) {
+func NewStore(logger *slog.Logger, cfg *Config, clock utils.Clock) (*Store, error) {
 	logger.Info(
 		"Creating new store",
-		"connection_string", cfg.DSN(true),
+		"connection_string", cfg.ConnectionString,
 	)
 
 	db, err := sql.Open("sqlite3", cfg.ConnectionString)
@@ -113,11 +115,11 @@ func NewStore(logger *slog.Logger, cfg *Config) (*Store, error) {
 		db:      db,
 		queries: queries,
 		logger:  logger,
+		clock:   clock,
 	}
 
 	return store, nil
 }
-
 
 func (s *Store) Close() error {
 	return s.db.Close()

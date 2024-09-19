@@ -23,13 +23,14 @@ type User struct {
 }
 
 type Video struct {
-	ID            int64
-	UserEmail     string
-	Title         string
-	Description   sql.NullString
-	FilePath      string
-	ThumbnailPath sql.NullString
-	Price         float64
-	TotalViews    int64
-	CreatedAt     sql.NullTime
+	ID           int64
+	ExternalID   string
+	UserEmail    string
+	Title        string
+	Description  string
+	VideoUrl     string
+	CoverUrl     string
+	PriceInCents int64
+	TotalViews   int64
+	CreatedAt    sql.NullTime
 }

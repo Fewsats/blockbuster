@@ -53,9 +53,11 @@ func (s *Server) setupRoutes() {
 	})
 
 	s.auth.RegisterPublicRoutes(s.router)
+	s.video.RegisterPublicRoutes(s.router)
 
 	s.auth.RegisterAuthMiddleware(s.router)
 	s.auth.RegisterProtectedRoutes(s.router)
+	s.video.RegisterProtectedRoutes(s.router)
 }
 
 func (s *Server) Run() error {

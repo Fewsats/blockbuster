@@ -7,42 +7,44 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createVideo = `-- name: CreateVideo :one
-INSERT INTO videos (user_email, title, description, file_path, thumbnail_path, price)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, user_email, title, description, file_path, thumbnail_path, price, total_views, created_at
+INSERT INTO videos (external_id, user_email, title, description, video_url, cover_url, price_in_cents)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at
 `
 
 type CreateVideoParams struct {
-	UserEmail     string
-	Title         string
-	Description   sql.NullString
-	FilePath      string
-	ThumbnailPath sql.NullString
-	Price         float64
+	ExternalID   string
+	UserEmail    string
+	Title        string
+	Description  string
+	VideoUrl     string
+	CoverUrl     string
+	PriceInCents int64
 }
 
 func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error) {
 	row := q.db.QueryRowContext(ctx, createVideo,
+		arg.ExternalID,
 		arg.UserEmail,
 		arg.Title,
 		arg.Description,
-		arg.FilePath,
-		arg.ThumbnailPath,
-		arg.Price,
+		arg.VideoUrl,
+		arg.CoverUrl,
+		arg.PriceInCents,
 	)
 	var i Video
 	err := row.Scan(
 		&i.ID,
+		&i.ExternalID,
 		&i.UserEmail,
 		&i.Title,
 		&i.Description,
-		&i.FilePath,
-		&i.ThumbnailPath,
-		&i.Price,
+		&i.VideoUrl,
+		&i.CoverUrl,
+		&i.PriceInCents,
 		&i.TotalViews,
 		&i.CreatedAt,
 	)
@@ -51,30 +53,31 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 
 const deleteVideo = `-- name: DeleteVideo :exec
 DELETE FROM videos
-WHERE id = ?
+WHERE external_id = ?
 `
 
-func (q *Queries) DeleteVideo(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteVideo, id)
+func (q *Queries) DeleteVideo(ctx context.Context, externalID string) error {
+	_, err := q.db.ExecContext(ctx, deleteVideo, externalID)
 	return err
 }
 
 const getVideo = `-- name: GetVideo :one
-SELECT id, user_email, title, description, file_path, thumbnail_path, price, total_views, created_at FROM videos
-WHERE id = ? LIMIT 1
+SELECT id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
+WHERE external_id = ? LIMIT 1
 `
 
-func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
-	row := q.db.QueryRowContext(ctx, getVideo, id)
+func (q *Queries) GetVideo(ctx context.Context, externalID string) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getVideo, externalID)
 	var i Video
 	err := row.Scan(
 		&i.ID,
+		&i.ExternalID,
 		&i.UserEmail,
 		&i.Title,
 		&i.Description,
-		&i.FilePath,
-		&i.ThumbnailPath,
-		&i.Price,
+		&i.VideoUrl,
+		&i.CoverUrl,
+		&i.PriceInCents,
 		&i.TotalViews,
 		&i.CreatedAt,
 	)
@@ -84,21 +87,22 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 const incrementVideoViews = `-- name: IncrementVideoViews :one
 UPDATE videos
 SET total_views = total_views + 1
-WHERE id = ?
-RETURNING id, user_email, title, description, file_path, thumbnail_path, price, total_views, created_at
+WHERE external_id = ?
+RETURNING id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at
 `
 
-func (q *Queries) IncrementVideoViews(ctx context.Context, id int64) (Video, error) {
-	row := q.db.QueryRowContext(ctx, incrementVideoViews, id)
+func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) (Video, error) {
+	row := q.db.QueryRowContext(ctx, incrementVideoViews, externalID)
 	var i Video
 	err := row.Scan(
 		&i.ID,
+		&i.ExternalID,
 		&i.UserEmail,
 		&i.Title,
 		&i.Description,
-		&i.FilePath,
-		&i.ThumbnailPath,
-		&i.Price,
+		&i.VideoUrl,
+		&i.CoverUrl,
+		&i.PriceInCents,
 		&i.TotalViews,
 		&i.CreatedAt,
 	)
@@ -106,7 +110,7 @@ func (q *Queries) IncrementVideoViews(ctx context.Context, id int64) (Video, err
 }
 
 const listUserVideos = `-- name: ListUserVideos :many
-SELECT id, user_email, title, description, file_path, thumbnail_path, price, total_views, created_at FROM videos
+SELECT id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
 WHERE user_email = ?
 ORDER BY created_at DESC
 `
@@ -122,56 +126,13 @@ func (q *Queries) ListUserVideos(ctx context.Context, userEmail string) ([]Video
 		var i Video
 		if err := rows.Scan(
 			&i.ID,
+			&i.ExternalID,
 			&i.UserEmail,
 			&i.Title,
 			&i.Description,
-			&i.FilePath,
-			&i.ThumbnailPath,
-			&i.Price,
-			&i.TotalViews,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listVideos = `-- name: ListVideos :many
-SELECT id, user_email, title, description, file_path, thumbnail_path, price, total_views, created_at FROM videos
-ORDER BY created_at DESC
-LIMIT ? OFFSET ?
-`
-
-type ListVideosParams struct {
-	Limit  int64
-	Offset int64
-}
-
-func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error) {
-	rows, err := q.db.QueryContext(ctx, listVideos, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Video
-	for rows.Next() {
-		var i Video
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserEmail,
-			&i.Title,
-			&i.Description,
-			&i.FilePath,
-			&i.ThumbnailPath,
-			&i.Price,
+			&i.VideoUrl,
+			&i.CoverUrl,
+			&i.PriceInCents,
 			&i.TotalViews,
 			&i.CreatedAt,
 		); err != nil {
@@ -189,7 +150,7 @@ func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]Video
 }
 
 const searchVideos = `-- name: SearchVideos :many
-SELECT id, user_email, title, description, file_path, thumbnail_path, price, total_views, created_at FROM videos
+SELECT id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
 WHERE title LIKE ? OR description LIKE ?
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
@@ -197,7 +158,7 @@ LIMIT ? OFFSET ?
 
 type SearchVideosParams struct {
 	Title       string
-	Description sql.NullString
+	Description string
 	Limit       int64
 	Offset      int64
 }
@@ -218,12 +179,13 @@ func (q *Queries) SearchVideos(ctx context.Context, arg SearchVideosParams) ([]V
 		var i Video
 		if err := rows.Scan(
 			&i.ID,
+			&i.ExternalID,
 			&i.UserEmail,
 			&i.Title,
 			&i.Description,
-			&i.FilePath,
-			&i.ThumbnailPath,
-			&i.Price,
+			&i.VideoUrl,
+			&i.CoverUrl,
+			&i.PriceInCents,
 			&i.TotalViews,
 			&i.CreatedAt,
 		); err != nil {
@@ -238,42 +200,4 @@ func (q *Queries) SearchVideos(ctx context.Context, arg SearchVideosParams) ([]V
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateVideo = `-- name: UpdateVideo :one
-UPDATE videos
-SET title = ?, description = ?, thumbnail_path = ?, price = ?
-WHERE id = ?
-RETURNING id, user_email, title, description, file_path, thumbnail_path, price, total_views, created_at
-`
-
-type UpdateVideoParams struct {
-	Title         string
-	Description   sql.NullString
-	ThumbnailPath sql.NullString
-	Price         float64
-	ID            int64
-}
-
-func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error) {
-	row := q.db.QueryRowContext(ctx, updateVideo,
-		arg.Title,
-		arg.Description,
-		arg.ThumbnailPath,
-		arg.Price,
-		arg.ID,
-	)
-	var i Video
-	err := row.Scan(
-		&i.ID,
-		&i.UserEmail,
-		&i.Title,
-		&i.Description,
-		&i.FilePath,
-		&i.ThumbnailPath,
-		&i.Price,
-		&i.TotalViews,
-		&i.CreatedAt,
-	)
-	return i, err
 }

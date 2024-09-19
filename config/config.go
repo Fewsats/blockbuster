@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/fewsats/blockbuster/auth"
+	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/fewsats/blockbuster/email"
 	"github.com/fewsats/blockbuster/store"
 	"github.com/gin-gonic/gin"
@@ -33,12 +34,11 @@ type Config struct {
 	LogLevel string `long:"log_level" description:"Logging level {debug, info, warn, error}"`
 	Port     int    `long:"port" description:"Port to listen on"`
 	GinMode  string `long:"gin_mode" description:"Gin mode {debug, release}"`
-	BaseURL  string `long:"base_url" description:"Base URL for the application"`
 
-	Auth    auth.Config   `group:"auth" namespace:"auth"`
-	Email   email.Config  `group:"email" namespace:"email"`
-	Storage StorageConfig `group:"storage" namespace:"storage"`
-	Store   store.Config  `group:"store" namespace:"store"`
+	Auth       auth.Config       `group:"auth" namespace:"auth"`
+	Email      email.Config      `group:"email" namespace:"email"`
+	Cloudflare cloudflare.Config `group:"cloudflare" namespace:"cloudflare"`
+	Store      store.Config      `group:"store" namespace:"store"`
 }
 
 func (c *Config) Validate() error {
@@ -75,18 +75,11 @@ func DefaultConfig() *Config {
 		LogLevel: DefaultLogLevel,
 		Port:     DefaultPort,
 		GinMode:  gin.DebugMode,
-		BaseURL:  "http://localhost:8080",
-		Storage: StorageConfig{
-			Provider: "local",
-			Local: struct {
-				Path string `long:"path" description:"Local storage path"`
-			}{
-				Path: "./storage",
-			},
-		},
-		Auth:  *auth.DefaultConfig(),
-		Email: *email.DefaultConfig(),
-		Store: *store.DefaultConfig(),
+
+		Auth:       *auth.DefaultConfig(),
+		Email:      *email.DefaultConfig(),
+		Store:      *store.DefaultConfig(),
+		Cloudflare: *cloudflare.DefaultConfig(),
 	}
 }
 
