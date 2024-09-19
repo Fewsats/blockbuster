@@ -7,7 +7,6 @@ import (
 	"github.com/fewsats/blockbuster/auth"
 	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/fewsats/blockbuster/config"
-	"github.com/fewsats/blockbuster/database"
 	"github.com/fewsats/blockbuster/email"
 	"github.com/fewsats/blockbuster/server"
 	storePkg "github.com/fewsats/blockbuster/store"
@@ -24,13 +23,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := database.NewSQLiteDB(cfg.Store.ConnectionString)
-	if err != nil {
-		logger.Error("Failed to connect to database", "error", err)
-		os.Exit(1)
-	}
-	defer db.Close()
-
 	emailService := email.NewResendService(logger, &cfg.Email)
 	cloudflareService, err := cloudflare.NewService(&cfg.Cloudflare)
 	if err != nil {
@@ -40,8 +32,12 @@ func main() {
 	// Initialize the store.
 	clock := utils.NewRealClock()
 	store, err := storePkg.NewStore(logger, &cfg.Store, clock)
+	if err != nil {
+		logger.Error("Failed to create store", "error", err)
+		os.Exit(1)
+	}
 
-	authController := auth.NewController(emailService, logger, db, &cfg.Auth)
+	authController := auth.NewController(emailService, logger, store, &cfg.Auth)
 	videoController := video.NewController(cloudflareService, store, logger)
 
 	srv, err := server.NewServer(logger, cfg, authController, videoController)

@@ -76,7 +76,7 @@ func (c *Controller) LoginHandler(ctx *gin.Context) {
 
 	// TODO(maybe set higher expiration so we can include here a "welcome" email?)
 	expiration := time.Now().Add(time.Duration(c.cfg.TokenExpirationMinutes) * time.Minute)
-	err = c.store.StoreToken(req.Email, token, expiration)
+	err = c.store.StoreToken(ctx, req.Email, token, expiration)
 	if err != nil {
 		c.logger.Error("Failed to store token", "error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process login request"})
@@ -100,7 +100,7 @@ func (c *Controller) VerifyTokenHandler(ctx *gin.Context) {
 		return
 	}
 
-	email, err := c.store.VerifyToken(token)
+	email, err := c.store.VerifyToken(ctx, token)
 	if err != nil {
 		c.logger.Error("Failed to verify token", "error", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})

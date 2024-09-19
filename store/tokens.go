@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/fewsats/blockbuster/store/sqlc"
 )
@@ -14,6 +15,17 @@ func (s *Store) GetToken(ctx context.Context, token string) (*sqlc.Token, error)
 		return nil, err
 	}
 	return &t, nil
+}
+
+// Add the new StoreToken method
+func (s *Store) StoreToken(ctx context.Context, email, token string, expiration time.Time) error {
+	_, err := s.queries.CreateToken(ctx, sqlc.CreateTokenParams{
+		Token:      token,
+		Email:      email,
+		Expiration: expiration,
+	})
+
+	return err
 }
 
 func (s *Store) ExecTx(ctx context.Context, txBody func(*sqlc.Queries) error) error {
@@ -39,4 +51,16 @@ func (s *Store) ExecTx(ctx context.Context, txBody func(*sqlc.Queries) error) er
 	}
 
 	return tx.Commit()
+}
+
+func (s *Store) VerifyToken(ctx context.Context, token string) (string, error) {
+	params := sqlc.VerifyTokenParams{
+		Token:      token,
+		Expiration: s.clock.Now(),
+	}
+	email, err := s.queries.VerifyToken(ctx, params)
+	if err != nil {
+		return "", err
+	}
+	return email, nil
 }

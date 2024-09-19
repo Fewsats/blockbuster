@@ -6,7 +6,7 @@ func DefaultConfig() *Config {
 		SkipMigrations:     false,
 		ConnectionString:   "blockbuster.db",
 		MaxOpenConnections: 25,
-		MigrationsPath:     "store/migrations",
+		MigrationsPath:     "store/sqlc/migrations",
 	}
 }
 

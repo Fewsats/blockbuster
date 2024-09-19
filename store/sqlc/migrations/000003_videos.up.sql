@@ -1,4 +1,4 @@
-CREATE TABLE videos (
+CREATE TABLE IF NOT EXISTS videos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     external_id TEXT NOT NULL,
     user_email TEXT NOT NULL,

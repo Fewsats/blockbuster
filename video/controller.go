@@ -2,8 +2,9 @@ package video
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 
 	"log/slog"
@@ -43,11 +44,11 @@ func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
 }
 
 type UploadVideoRequest struct {
-	Email        string `form:"email" binding:"required,email"`
-	Title        string `form:"title" binding:"required"`
-	Description  string `form:"description"`
-	PriceInCents int64  `form:"price_in_cents" binding:"required,min=0"`
-	CoverImage   string `form:"cover_image"`
+	Email        string                `form:"email" binding:"required,email"`
+	Title        string                `form:"title" binding:"required"`
+	Description  string                `form:"description"`
+	PriceInCents int64                 `form:"price_in_cents" binding:"required,min=0"`
+	CoverImage   *multipart.FileHeader `form:"cover_image"`
 }
 
 // UploadFileResponse represents a response to uploading a file.
@@ -57,17 +58,25 @@ type UploadVideoResponse struct {
 }
 
 func (r *UploadVideoRequest) Validate() error {
-	if r.CoverImage == "" {
+	if r.CoverImage == nil {
 		return fmt.Errorf("cover image is required")
 	}
 	return nil
 }
-func (c *Controller) processAndUploadCoverImage(externalID string,
-	coverImageData string) (string, error) {
 
-	coverImageBytes, err := base64.StdEncoding.DecodeString(coverImageData)
+func (c *Controller) processAndUploadCoverImage(externalID string,
+	coverImageHeader *multipart.FileHeader) (string, error) {
+
+	file, err := coverImageHeader.Open()
 	if err != nil {
-		return "", fmt.Errorf("failed to decode cover image data: %w", err)
+		return "", fmt.Errorf("failed to open cover image: %w", err)
+	}
+	defer file.Close()
+
+	// Read the entire file into memory
+	coverImageBytes, err := io.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("failed to read cover image: %w", err)
 	}
 
 	coverImageReader := bytes.NewReader(coverImageBytes)
@@ -83,11 +92,13 @@ func (c *Controller) processAndUploadCoverImage(externalID string,
 func (c *Controller) UploadVideo(ctx *gin.Context) {
 	var req UploadVideoRequest
 	if err := ctx.ShouldBind(&req); err != nil {
+		c.logger.Error("Invalid request", "error", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err := req.Validate(); err != nil {
+		c.logger.Error("Invalid request", "error", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -98,6 +109,7 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 		videoID, req.CoverImage,
 	)
 	if err != nil {
+		c.logger.Error("Failed to upload cover image", "error", err)
 		ctx.JSON(
 			http.StatusInternalServerError,
 			gin.H{"error": "Failed to upload cover image"},

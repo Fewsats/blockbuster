@@ -59,6 +59,5 @@ func (s *Service) GenerateVideoUploadURL(key string) (string, error) {
 func (s *Service) UploadPublicFile(fileID string, prefix string, reader io.ReadSeeker) (string, error) {
 
 	key := fmt.Sprintf("%s/%s", prefix, fileID)
-
 	return s.r2.UploadPublicFile(key, reader)
 }
