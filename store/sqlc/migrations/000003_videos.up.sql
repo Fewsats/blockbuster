@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS videos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     external_id TEXT NOT NULL,
-    user_email TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     video_url TEXT NOT NULL,

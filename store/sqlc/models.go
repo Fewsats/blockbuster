@@ -25,7 +25,7 @@ type User struct {
 type Video struct {
 	ID           int64
 	ExternalID   string
-	UserEmail    string
+	UserID       int64
 	Title        string
 	Description  string
 	VideoUrl     string

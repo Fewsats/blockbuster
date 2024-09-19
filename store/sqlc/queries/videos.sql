@@ -1,5 +1,5 @@
 -- name: CreateVideo :one
-INSERT INTO videos (external_id, user_email, title, description, video_url, cover_url, price_in_cents)
+INSERT INTO videos (external_id, user_id, title, description, video_url, cover_url, price_in_cents)
 VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
@@ -9,7 +9,7 @@ WHERE external_id = ? LIMIT 1;
 
 -- name: ListUserVideos :many
 SELECT * FROM videos
-WHERE user_email = ?
+WHERE user_id = ?
 ORDER BY created_at DESC;
 
 -- name: DeleteVideo :exec

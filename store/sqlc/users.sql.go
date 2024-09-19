@@ -22,16 +22,28 @@ func (q *Queries) CreateUser(ctx context.Context, email string) (int64, error) {
 	return id, err
 }
 
-const getUser = `-- name: GetUser :one
+const getUserByID = `-- name: GetUserByID :one
 SELECT id, email, verified FROM users
-WHERE email = ? LIMIT 1
+WHERE id = ? LIMIT 1
 `
 
-func (q *Queries) GetUser(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUser, email)
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(&i.ID, &i.Email, &i.Verified)
 	return i, err
+}
+
+const getUserIDByEmail = `-- name: GetUserIDByEmail :one
+SELECT id FROM users
+WHERE email = ? LIMIT 1
+`
+
+func (q *Queries) GetUserIDByEmail(ctx context.Context, email string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getUserIDByEmail, email)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const updateUserVerified = `-- name: UpdateUserVerified :exec

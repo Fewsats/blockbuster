@@ -51,7 +51,7 @@ export function initAuth() {
 
     authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('email').value;
+        const email = document.getElementById('login_email').value;
         try {
             const response = await fetch('/auth/login', {
                 method: 'POST',

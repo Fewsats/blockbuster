@@ -10,14 +10,14 @@ import (
 )
 
 const createVideo = `-- name: CreateVideo :one
-INSERT INTO videos (external_id, user_email, title, description, video_url, cover_url, price_in_cents)
+INSERT INTO videos (external_id, user_id, title, description, video_url, cover_url, price_in_cents)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at
+RETURNING id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at
 `
 
 type CreateVideoParams struct {
 	ExternalID   string
-	UserEmail    string
+	UserID       int64
 	Title        string
 	Description  string
 	VideoUrl     string
@@ -28,7 +28,7 @@ type CreateVideoParams struct {
 func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error) {
 	row := q.db.QueryRowContext(ctx, createVideo,
 		arg.ExternalID,
-		arg.UserEmail,
+		arg.UserID,
 		arg.Title,
 		arg.Description,
 		arg.VideoUrl,
@@ -39,7 +39,7 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 	err := row.Scan(
 		&i.ID,
 		&i.ExternalID,
-		&i.UserEmail,
+		&i.UserID,
 		&i.Title,
 		&i.Description,
 		&i.VideoUrl,
@@ -62,7 +62,7 @@ func (q *Queries) DeleteVideo(ctx context.Context, externalID string) error {
 }
 
 const getVideo = `-- name: GetVideo :one
-SELECT id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
+SELECT id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
 WHERE external_id = ? LIMIT 1
 `
 
@@ -72,7 +72,7 @@ func (q *Queries) GetVideo(ctx context.Context, externalID string) (Video, error
 	err := row.Scan(
 		&i.ID,
 		&i.ExternalID,
-		&i.UserEmail,
+		&i.UserID,
 		&i.Title,
 		&i.Description,
 		&i.VideoUrl,
@@ -88,7 +88,7 @@ const incrementVideoViews = `-- name: IncrementVideoViews :one
 UPDATE videos
 SET total_views = total_views + 1
 WHERE external_id = ?
-RETURNING id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at
+RETURNING id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at
 `
 
 func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) (Video, error) {
@@ -97,7 +97,7 @@ func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) (V
 	err := row.Scan(
 		&i.ID,
 		&i.ExternalID,
-		&i.UserEmail,
+		&i.UserID,
 		&i.Title,
 		&i.Description,
 		&i.VideoUrl,
@@ -110,13 +110,13 @@ func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) (V
 }
 
 const listUserVideos = `-- name: ListUserVideos :many
-SELECT id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
-WHERE user_email = ?
+SELECT id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
+WHERE user_id = ?
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListUserVideos(ctx context.Context, userEmail string) ([]Video, error) {
-	rows, err := q.db.QueryContext(ctx, listUserVideos, userEmail)
+func (q *Queries) ListUserVideos(ctx context.Context, userID int64) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listUserVideos, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (q *Queries) ListUserVideos(ctx context.Context, userEmail string) ([]Video
 		if err := rows.Scan(
 			&i.ID,
 			&i.ExternalID,
-			&i.UserEmail,
+			&i.UserID,
 			&i.Title,
 			&i.Description,
 			&i.VideoUrl,
@@ -150,7 +150,7 @@ func (q *Queries) ListUserVideos(ctx context.Context, userEmail string) ([]Video
 }
 
 const searchVideos = `-- name: SearchVideos :many
-SELECT id, external_id, user_email, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
+SELECT id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
 WHERE title LIKE ? OR description LIKE ?
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
@@ -180,7 +180,7 @@ func (q *Queries) SearchVideos(ctx context.Context, arg SearchVideosParams) ([]V
 		if err := rows.Scan(
 			&i.ID,
 			&i.ExternalID,
-			&i.UserEmail,
+			&i.UserID,
 			&i.Title,
 			&i.Description,
 			&i.VideoUrl,

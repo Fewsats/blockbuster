@@ -6,6 +6,10 @@ import (
 )
 
 type Store interface {
-	StoreToken(ctx context.Context, email, token string, expiration time.Time) error
+	GetUserByID(ctx context.Context, id int64) (User, error)
+	GetOrCreateUserByEmail(ctx context.Context, email string) (int64, error)
+	UpdateUserVerified(ctx context.Context, email string, verified bool) error
+	StoreToken(ctx context.Context, email, token string,
+		expiration time.Time) error
 	VerifyToken(ctx context.Context, token string) (string, error)
 }

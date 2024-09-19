@@ -39,8 +39,8 @@ func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 }
 
 func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
-	router.GET("/user/videos", nil)
-	router.DELETE("/video/:id", nil)
+	router.GET("/user/videos", c.ListUserVideos)
+	router.DELETE("/video/:id", c.DeleteVideo)
 }
 
 type UploadVideoRequest struct {
@@ -103,6 +103,16 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 		return
 	}
 
+	userID, err := c.store.GetOrCreateUserByEmail(ctx, req.Email)
+	if err != nil {
+		c.logger.Error("Failed to get user by email", "error", err)
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Failed to get user"},
+		)
+		return
+	}
+
 	videoID := uuid.New().String()
 
 	coverURL, err := c.processAndUploadCoverImage(
@@ -126,7 +136,7 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 
 	_, err = c.store.CreateVideo(ctx, CreateVideoParams{
 		ExternalID:   videoID,
-		UserEmail:    req.Email,
+		UserID:       userID,
 		Title:        req.Title,
 		Description:  req.Description,
 		CoverURL:     coverURL,
@@ -147,4 +157,40 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 			UploadURL: uploadURL,
 		},
 	)
+}
+
+func (c *Controller) ListUserVideos(ctx *gin.Context) {
+	userID := ctx.GetInt64("user_id")
+	if userID == 0 {
+		ctx.JSON(
+			http.StatusUnauthorized,
+			gin.H{"error": "User not authenticated"},
+		)
+		return
+	}
+
+	videos, err := c.store.ListUserVideos(ctx, userID)
+	if err != nil {
+		c.logger.Error("Failed to list user videos", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user videos"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"videos": videos})
+}
+
+func (c *Controller) DeleteVideo(ctx *gin.Context) {
+	videoID := ctx.Param("id")
+
+	err := c.store.DeleteVideo(ctx, videoID)
+	if err != nil {
+		c.logger.Error("Failed to delete video", "error", err)
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Failed to delete video"},
+		)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

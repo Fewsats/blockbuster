@@ -107,9 +107,26 @@ func (c *Controller) VerifyTokenHandler(ctx *gin.Context) {
 		return
 	}
 
+	userID, err := c.store.GetOrCreateUserByEmail(ctx, email)
+	if err != nil {
+		c.logger.Error("Failed to get user by email", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+		return
+	}
+
+	err = c.store.UpdateUserVerified(ctx, email, true)
+	if err != nil {
+		c.logger.Error("Failed to update user verified", "error", err)
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Failed to update user verified"},
+		)
+		return
+	}
+
 	// Generate a new session
 	session := sessions.Default(ctx)
-	session.Set("user", email)
+	session.Set("user_id", userID)
 	if err := session.Save(); err != nil {
 		c.logger.Error("Failed to save session", "error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
@@ -123,26 +140,39 @@ func (c *Controller) VerifyTokenHandler(ctx *gin.Context) {
 func (c *Controller) AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		session := sessions.Default(ctx)
-		user := session.Get("user")
-		if user == nil {
+		userID := session.Get("user_id")
+		if userID == nil {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			ctx.Abort()
 			return
 		}
-		ctx.Set("email", user)
+		ctx.Set("user_id", userID)
 		ctx.Next()
 	}
 }
 
 func (c *Controller) MeHandler(ctx *gin.Context) {
 	session := sessions.Default(ctx)
-	userEmail := session.Get("user")
-	if userEmail == nil {
+	userID := session.Get("user_id")
+	if userID == nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"email": userEmail})
+	userIDInt, ok := userID.(int64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	user, err := c.store.GetUserByID(ctx, userIDInt)
+	if err != nil {
+		c.logger.Error("Failed to get user by ID", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"email": user.Email})
 }
 
 func generateRandomToken(length int) (string, error) {
@@ -156,7 +186,7 @@ func generateRandomToken(length int) (string, error) {
 
 func (c *Controller) LogoutHandler(ctx *gin.Context) {
 	session := sessions.Default(ctx)
-	user := session.Get("user")
+	user := session.Get("user_id")
 	if user == nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session token"})
 		return
