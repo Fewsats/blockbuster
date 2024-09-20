@@ -14,23 +14,30 @@ type Token struct {
 	Email      string
 	Token      string
 	Expiration time.Time
+	CreatedAt  time.Time
 }
 
 type User struct {
-	ID       int64
-	Email    string
-	Verified bool
+	ID        int64
+	Email     string
+	Verified  bool
+	CreatedAt time.Time
 }
 
 type Video struct {
-	ID           int64
-	ExternalID   string
-	UserID       int64
-	Title        string
-	Description  string
-	VideoUrl     string
-	CoverUrl     string
-	PriceInCents int64
-	TotalViews   int64
-	CreatedAt    sql.NullTime
+	ID                int64
+	ExternalID        string
+	UserID            int64
+	Title             string
+	Description       string
+	CoverUrl          string
+	PriceInCents      int64
+	TotalViews        int64
+	ThumbnailUrl      sql.NullString
+	DurationInSeconds sql.NullFloat64
+	SizeInBytes       sql.NullInt64
+	InputHeight       sql.NullInt64
+	InputWidth        sql.NullInt64
+	ReadyToStream     bool
+	CreatedAt         time.Time
 }

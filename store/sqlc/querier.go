@@ -11,19 +11,20 @@ import (
 
 type Querier interface {
 	CreateToken(ctx context.Context, arg CreateTokenParams) (Token, error)
-	CreateUser(ctx context.Context, email string) (int64, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (int64, error)
 	CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error)
 	DeleteExpiredTokens(ctx context.Context, expiration time.Time) error
 	DeleteToken(ctx context.Context, token string) error
 	DeleteVideo(ctx context.Context, externalID string) error
 	GetToken(ctx context.Context, token string) (Token, error)
-	GetUserByID(ctx context.Context, id int64) (User, error)
+	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserIDByEmail(ctx context.Context, email string) (int64, error)
 	GetVideoByExternalID(ctx context.Context, externalID string) (Video, error)
 	IncrementVideoViews(ctx context.Context, externalID string) (Video, error)
 	ListUserVideos(ctx context.Context, userID int64) ([]Video, error)
 	SearchVideos(ctx context.Context, arg SearchVideosParams) ([]Video, error)
 	UpdateUserVerified(ctx context.Context, arg UpdateUserVerifiedParams) error
+	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
 	VerifyToken(ctx context.Context, arg VerifyTokenParams) (string, error)
 }
 

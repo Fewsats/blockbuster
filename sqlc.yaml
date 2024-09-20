@@ -8,7 +8,8 @@ sql:
         out: store/sqlc
         package: sqlc
         emit_interface: true
-        # sql_package: "pgx/v5"
-        # overrides:
-        #     - db_type: "timestamptz"
-        #       go_type: "time.Time"
+        overrides:
+          - db_type: "timestamp"
+            go_type: "time.Time"
+          - db_type: "timestamptz"
+            go_type: "time.Time"

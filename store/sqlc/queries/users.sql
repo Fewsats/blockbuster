@@ -1,6 +1,6 @@
 -- name: CreateUser :one
-INSERT INTO users (email, verified)
-VALUES (?, false)
+INSERT INTO users (email, verified, created_at)
+VALUES (?, false, ?)
 RETURNING id;
 
 -- name: GetUserByID :one

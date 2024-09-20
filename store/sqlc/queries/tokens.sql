@@ -1,6 +1,6 @@
 -- name: CreateToken :one
-INSERT INTO tokens (email, token, expiration)
-VALUES (?, ?, ?)
+INSERT INTO tokens (email, token, expiration, created_at)
+VALUES (?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetToken :one

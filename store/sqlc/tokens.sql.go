@@ -11,25 +11,32 @@ import (
 )
 
 const createToken = `-- name: CreateToken :one
-INSERT INTO tokens (email, token, expiration)
-VALUES (?, ?, ?)
-RETURNING id, email, token, expiration
+INSERT INTO tokens (email, token, expiration, created_at)
+VALUES (?, ?, ?, ?)
+RETURNING id, email, token, expiration, created_at
 `
 
 type CreateTokenParams struct {
 	Email      string
 	Token      string
 	Expiration time.Time
+	CreatedAt  time.Time
 }
 
 func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token, error) {
-	row := q.db.QueryRowContext(ctx, createToken, arg.Email, arg.Token, arg.Expiration)
+	row := q.db.QueryRowContext(ctx, createToken,
+		arg.Email,
+		arg.Token,
+		arg.Expiration,
+		arg.CreatedAt,
+	)
 	var i Token
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.Token,
 		&i.Expiration,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -55,7 +62,7 @@ func (q *Queries) DeleteToken(ctx context.Context, token string) error {
 }
 
 const getToken = `-- name: GetToken :one
-SELECT id, email, token, expiration FROM tokens
+SELECT id, email, token, expiration, created_at FROM tokens
 WHERE token = ? LIMIT 1
 `
 
@@ -67,6 +74,7 @@ func (q *Queries) GetToken(ctx context.Context, token string) (Token, error) {
 		&i.Email,
 		&i.Token,
 		&i.Expiration,
+		&i.CreatedAt,
 	)
 	return i, err
 }

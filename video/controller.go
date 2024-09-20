@@ -2,8 +2,8 @@ package video
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"html/template"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -21,11 +21,11 @@ type Controller struct {
 	logger *slog.Logger
 }
 
-func NewController(cloudflareService *cloudflare.Service, store Store,
+func NewController(cf *cloudflare.Service, store Store,
 	logger *slog.Logger) *Controller {
 
 	return &Controller{
-		cf: cloudflareService,
+		cf: cf,
 
 		store:  store,
 		logger: logger,
@@ -36,11 +36,15 @@ func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 	router.POST("/video/upload", c.UploadVideo)
 	router.GET("/video/:id", c.ServeVideoPage)
 	router.GET("/video/search", nil)
+
+}
+
+func (c *Controller) RegisterL402Routes(router *gin.Engine) {
+	router.GET("/video/stream/:id", c.StreamVideo)
 }
 
 func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
 	router.GET("/user/videos", c.ListUserVideos)
-	router.DELETE("/video/:id", c.DeleteVideo)
 }
 
 type UploadVideoRequest struct {
@@ -64,8 +68,8 @@ func (r *UploadVideoRequest) Validate() error {
 	return nil
 }
 
-func (c *Controller) processAndUploadCoverImage(externalID string,
-	coverImageHeader *multipart.FileHeader) (string, error) {
+func (c *Controller) processAndUploadCoverImage(ctx context.Context,
+	externalID string, coverImageHeader *multipart.FileHeader) (string, error) {
 
 	file, err := coverImageHeader.Open()
 	if err != nil {
@@ -81,7 +85,8 @@ func (c *Controller) processAndUploadCoverImage(externalID string,
 
 	coverImageReader := bytes.NewReader(coverImageBytes)
 
-	coverURL, err := c.cf.UploadPublicFile(externalID, "cover-images", coverImageReader)
+	coverURL, err := c.cf.UploadPublicFile(ctx, externalID,
+		"cover-images", coverImageReader)
 	if err != nil {
 		return "", fmt.Errorf("failed to upload cover file: %w", err)
 	}
@@ -120,9 +125,7 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 		return
 	}
 
-	coverURL, err := c.processAndUploadCoverImage(
-		streamID, req.CoverImage,
-	)
+	coverURL, err := c.processAndUploadCoverImage(ctx, streamID, req.CoverImage)
 	if err != nil {
 		c.logger.Error("Failed to upload cover image", "error", err)
 		ctx.JSON(
@@ -137,7 +140,6 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 		Title:        req.Title,
 		Description:  req.Description,
 		CoverURL:     coverURL,
-		VideoURL:     c.cf.VideoURL(streamID), // TODO(pol) check if correct after using streams
 		PriceInCents: req.PriceInCents,
 	})
 
@@ -173,30 +175,51 @@ func (c *Controller) ListUserVideos(ctx *gin.Context) {
 		return
 	}
 
-	for _, v := range videos {
-		v.CoverURL = c.cf.PublicFileURL(fmt.Sprintf("cover-images/%s", v.ExternalID))
-	}
+	// TODO(pol): this needs to be the L402 URL link
+	// for _, v := range videos {
+	// 	v.CoverURL = c.cf.PublicFileURL(fmt.Sprintf("cover-images/%s", v.ExternalID))
+	// }
 
 	ctx.JSON(http.StatusOK, gin.H{"videos": videos})
 }
 
-func (c *Controller) DeleteVideo(ctx *gin.Context) {
-	videoID := ctx.Param("id")
+func (c *Controller) ServeVideoPage(ctx *gin.Context) {
+	// videoID := ctx.Param("id")
 
-	err := c.store.DeleteVideo(ctx, videoID)
-	if err != nil {
-		c.logger.Error("Failed to delete video", "error", err)
-		ctx.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": "Failed to delete video"},
-		)
-		return
-	}
+	// video, err := c.store.GetVideoByExternalID(ctx, videoID)
+	// if err != nil {
+	// 	c.logger.Error("Failed to get video by ID", "error", err)
+	// 	ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video"})
+	// 	return
+	// }
+	// presignedURL, err := c.cf.GenerateVideoViewURL(video.ExternalID)
+	// if err != nil {
+	// 	c.logger.Error("Failed to generate presigned URL", "error", err)
+	// 	ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate video URL"})
+	// 	return
+	// }
+	// video.VideoURL = presignedURL
 
-	ctx.Status(http.StatusNoContent)
+	// c.logger.Info("Video data", "video", video)
+
+	// tmpl, err := template.ParseFiles("frontend/video.html")
+	// if err != nil {
+	// 	c.logger.Error("Failed to parse template", "error", err)
+	// 	ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse template"})
+	// 	return
+	// }
+
+	// var buf bytes.Buffer
+	// if err := tmpl.Execute(&buf, video); err != nil {
+	// 	c.logger.Error("Failed to execute template", "error", err)
+	// 	ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to render template"})
+	// 	return
+	// }
+
+	// ctx.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
 }
 
-func (c *Controller) ServeVideoPage(ctx *gin.Context) {
+func (c *Controller) StreamVideo(ctx *gin.Context) {
 	videoID := ctx.Param("id")
 
 	video, err := c.store.GetVideoByExternalID(ctx, videoID)
@@ -205,29 +228,43 @@ func (c *Controller) ServeVideoPage(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video"})
 		return
 	}
-	presignedURL, err := c.cf.GenerateVideoViewURL(video.ExternalID)
+
+	// first time the video is accessed we'll populate it with the cloudflare info
+	if !video.ReadyToStream {
+		videoInfo, err := c.cf.GetStreamVideoInfo(ctx, video.ExternalID)
+		if err != nil {
+			c.logger.Error("Failed to get video info", "error", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video info"})
+			return
+		}
+
+		video, err = c.store.UpdateVideo(ctx, video.ExternalID, UpdateVideoParams{
+			ThumbnailURL:      videoInfo.Thumbnail,
+			DurationInSeconds: videoInfo.Duration,
+			SizeInBytes:       int64(videoInfo.Size),
+			InputHeight:       int32(videoInfo.Input.Height),
+			InputWidth:        int32(videoInfo.Input.Width),
+			ReadyToStream:     videoInfo.ReadyToStream,
+		})
+		if err != nil {
+			c.logger.Error("Failed to update video", "error", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update video"})
+			return
+		}
+	}
+
+	// We already attempted to update the info, if video ain't ready here, it aint ready.
+	if !video.ReadyToStream {
+		ctx.JSON(http.StatusNotImplemented, gin.H{"error": "Video is not ready to stream"})
+		return
+	}
+
+	token, err := c.cf.GenerateStreamURL(ctx, video.ExternalID)
 	if err != nil {
 		c.logger.Error("Failed to generate presigned URL", "error", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate video URL"})
-		return
-	}
-	video.VideoURL = presignedURL
-
-	c.logger.Info("Video data", "video", video)
-
-	tmpl, err := template.ParseFiles("frontend/video.html")
-	if err != nil {
-		c.logger.Error("Failed to parse template", "error", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse template"})
-		return
 	}
 
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, video); err != nil {
-		c.logger.Error("Failed to execute template", "error", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to render template"})
-		return
-	}
+	presignedURL := fmt.Sprintf("https://videodelivery.net/%s/manifest/video.m3u8?token=%s", videoID, token)
 
-	ctx.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
+	ctx.JSON(http.StatusOK, gin.H{"url": presignedURL})
 }

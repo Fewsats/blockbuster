@@ -7,12 +7,14 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
 
 const createVideo = `-- name: CreateVideo :one
-INSERT INTO videos (external_id, user_id, title, description, video_url, cover_url, price_in_cents)
+INSERT INTO videos (external_id, user_id, title, description, cover_url, price_in_cents, created_at)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at
+RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
 `
 
 type CreateVideoParams struct {
@@ -20,9 +22,9 @@ type CreateVideoParams struct {
 	UserID       int64
 	Title        string
 	Description  string
-	VideoUrl     string
 	CoverUrl     string
 	PriceInCents int64
+	CreatedAt    time.Time
 }
 
 func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error) {
@@ -31,9 +33,9 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 		arg.UserID,
 		arg.Title,
 		arg.Description,
-		arg.VideoUrl,
 		arg.CoverUrl,
 		arg.PriceInCents,
+		arg.CreatedAt,
 	)
 	var i Video
 	err := row.Scan(
@@ -42,10 +44,15 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 		&i.UserID,
 		&i.Title,
 		&i.Description,
-		&i.VideoUrl,
 		&i.CoverUrl,
 		&i.PriceInCents,
 		&i.TotalViews,
+		&i.ThumbnailUrl,
+		&i.DurationInSeconds,
+		&i.SizeInBytes,
+		&i.InputHeight,
+		&i.InputWidth,
+		&i.ReadyToStream,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -62,7 +69,7 @@ func (q *Queries) DeleteVideo(ctx context.Context, externalID string) error {
 }
 
 const getVideoByExternalID = `-- name: GetVideoByExternalID :one
-SELECT id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
+SELECT id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at FROM videos
 WHERE external_id = ? LIMIT 1
 `
 
@@ -75,10 +82,15 @@ func (q *Queries) GetVideoByExternalID(ctx context.Context, externalID string) (
 		&i.UserID,
 		&i.Title,
 		&i.Description,
-		&i.VideoUrl,
 		&i.CoverUrl,
 		&i.PriceInCents,
 		&i.TotalViews,
+		&i.ThumbnailUrl,
+		&i.DurationInSeconds,
+		&i.SizeInBytes,
+		&i.InputHeight,
+		&i.InputWidth,
+		&i.ReadyToStream,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -88,7 +100,7 @@ const incrementVideoViews = `-- name: IncrementVideoViews :one
 UPDATE videos
 SET total_views = total_views + 1
 WHERE external_id = ?
-RETURNING id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at
+RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
 `
 
 func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) (Video, error) {
@@ -100,17 +112,22 @@ func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) (V
 		&i.UserID,
 		&i.Title,
 		&i.Description,
-		&i.VideoUrl,
 		&i.CoverUrl,
 		&i.PriceInCents,
 		&i.TotalViews,
+		&i.ThumbnailUrl,
+		&i.DurationInSeconds,
+		&i.SizeInBytes,
+		&i.InputHeight,
+		&i.InputWidth,
+		&i.ReadyToStream,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listUserVideos = `-- name: ListUserVideos :many
-SELECT id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
+SELECT id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at FROM videos
 WHERE user_id = ?
 ORDER BY created_at DESC
 `
@@ -130,10 +147,15 @@ func (q *Queries) ListUserVideos(ctx context.Context, userID int64) ([]Video, er
 			&i.UserID,
 			&i.Title,
 			&i.Description,
-			&i.VideoUrl,
 			&i.CoverUrl,
 			&i.PriceInCents,
 			&i.TotalViews,
+			&i.ThumbnailUrl,
+			&i.DurationInSeconds,
+			&i.SizeInBytes,
+			&i.InputHeight,
+			&i.InputWidth,
+			&i.ReadyToStream,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -150,7 +172,7 @@ func (q *Queries) ListUserVideos(ctx context.Context, userID int64) ([]Video, er
 }
 
 const searchVideos = `-- name: SearchVideos :many
-SELECT id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
+SELECT id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at FROM videos
 WHERE title LIKE ? OR description LIKE ?
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
@@ -183,10 +205,15 @@ func (q *Queries) SearchVideos(ctx context.Context, arg SearchVideosParams) ([]V
 			&i.UserID,
 			&i.Title,
 			&i.Description,
-			&i.VideoUrl,
 			&i.CoverUrl,
 			&i.PriceInCents,
 			&i.TotalViews,
+			&i.ThumbnailUrl,
+			&i.DurationInSeconds,
+			&i.SizeInBytes,
+			&i.InputHeight,
+			&i.InputWidth,
+			&i.ReadyToStream,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -200,4 +227,58 @@ func (q *Queries) SearchVideos(ctx context.Context, arg SearchVideosParams) ([]V
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateVideo = `-- name: UpdateVideo :one
+UPDATE videos
+SET 
+  thumbnail_url = COALESCE(?1, thumbnail_url),
+  duration_in_seconds = COALESCE(?2, duration_in_seconds),
+  size_in_bytes = COALESCE(?3, size_in_bytes),
+  input_height = COALESCE(?4, input_height),
+  input_width = COALESCE(?5, input_width),
+  ready_to_stream = ?6
+WHERE external_id = ?7
+RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
+`
+
+type UpdateVideoParams struct {
+	ThumbnailUrl      sql.NullString
+	DurationInSeconds sql.NullFloat64
+	SizeInBytes       sql.NullInt64
+	InputHeight       sql.NullInt64
+	InputWidth        sql.NullInt64
+	ReadyToStream     bool
+	ExternalID        string
+}
+
+func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, updateVideo,
+		arg.ThumbnailUrl,
+		arg.DurationInSeconds,
+		arg.SizeInBytes,
+		arg.InputHeight,
+		arg.InputWidth,
+		arg.ReadyToStream,
+		arg.ExternalID,
+	)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.ExternalID,
+		&i.UserID,
+		&i.Title,
+		&i.Description,
+		&i.CoverUrl,
+		&i.PriceInCents,
+		&i.TotalViews,
+		&i.ThumbnailUrl,
+		&i.DurationInSeconds,
+		&i.SizeInBytes,
+		&i.InputHeight,
+		&i.InputWidth,
+		&i.ReadyToStream,
+		&i.CreatedAt,
+	)
+	return i, err
 }

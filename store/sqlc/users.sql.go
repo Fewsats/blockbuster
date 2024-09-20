@@ -7,16 +7,22 @@ package sqlc
 
 import (
 	"context"
+	"time"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, verified)
-VALUES (?, false)
+INSERT INTO users (email, verified, created_at)
+VALUES (?, false, ?)
 RETURNING id
 `
 
-func (q *Queries) CreateUser(ctx context.Context, email string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, createUser, email)
+type CreateUserParams struct {
+	Email     string
+	CreatedAt time.Time
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.CreatedAt)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
@@ -27,9 +33,15 @@ SELECT id, email, verified FROM users
 WHERE id = ? LIMIT 1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+type GetUserByIDRow struct {
+	ID       int64
+	Email    string
+	Verified bool
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(&i.ID, &i.Email, &i.Verified)
 	return i, err
 }

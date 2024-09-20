@@ -1,6 +1,7 @@
 package cloudflare
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -21,9 +22,8 @@ func NewR2Service(cfg *Config) (*R2Service, error) {
 	cred := credentials.NewStaticCredentials(cfg.AccessKey, cfg.SecretAccessKey, "")
 
 	r2Config := &aws.Config{
-		Credentials: cred,
-		Endpoint:    cfg.Endpoint,
-		// Endpoint:         aws.String(fmt.Sprintf("https://%s.r2.cloudflarestorage.com", cfg.AccountID)),
+		Credentials:      cred,
+		Endpoint:         cfg.Endpoint,
 		Region:           aws.String("auto"),
 		S3ForcePathStyle: aws.Bool(true),
 	}
@@ -47,42 +47,17 @@ const (
 	defaultExpireTime = 1 * time.Hour
 )
 
-func (r *R2Service) VideoURL(key string) string {
+func (r *R2Service) videoURL(key string) string {
 	return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s", r.videoBucket, key)
 }
 
-func (r *R2Service) PublicFileURL(key string) string {
+func (r *R2Service) publicFileURL(key string) string {
 	// TODO(pol) this is a dev access to staging bucket hardcoded
 	return fmt.Sprintf("https://pub-3c55410f5c574362bbaa52948499969e.r2.dev/%s", key)
 	// return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s", r.publicBucket, key)
 }
 
-func (r *R2Service) GenerateVideoViewURL(key string) (string, error) {
-	req, _ := r.r2.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(r.videoBucket),
-		Key:    aws.String(key),
-	})
-	return req.Presign(defaultExpireTime)
-}
-
-// GenerateVideoUploadURL generates a presigned URL for a video in the storage provider.
-func (r *R2Service) GenerateVideoUploadURL(key string) (string, error) {
-	req, _ := r.r2.PutObjectRequest(&s3.PutObjectInput{
-		Bucket: aws.String(r.videoBucket),
-		Key:    aws.String(key),
-	})
-	return req.Presign(defaultExpireTime)
-}
-
-func (r *R2Service) DeleteVideoFile(key string) error {
-	_, err := r.r2.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(r.videoBucket),
-		Key:    aws.String(key),
-	})
-	return err
-}
-
-func (r *R2Service) UploadPublicFile(key string, reader io.ReadSeeker) (string, error) {
+func (r *R2Service) uploadPublicFile(ctx context.Context, key string, reader io.ReadSeeker) (string, error) {
 	_, err := r.r2.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(r.publicBucket),
 		Key:    aws.String(key),
@@ -91,10 +66,10 @@ func (r *R2Service) UploadPublicFile(key string, reader io.ReadSeeker) (string, 
 	if err != nil {
 		return "", err
 	}
-	return r.PublicFileURL(key), nil
+	return r.publicFileURL(key), nil
 }
 
-func (r *R2Service) DeletePublicFile(key string) error {
+func (r *R2Service) deletePublicFile(ctx context.Context, key string) error {
 	_, err := r.r2.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(r.publicBucket),
 		Key:    aws.String(key),

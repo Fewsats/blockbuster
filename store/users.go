@@ -13,8 +13,10 @@ import (
 
 // User methods
 func (s *Store) CreateUser(ctx context.Context, email string) (int64, error) {
-	userID, err := s.queries.CreateUser(ctx, email)
-
+	userID, err := s.queries.CreateUser(ctx, sqlc.CreateUserParams{
+		Email:     email,
+		CreatedAt: s.clock.Now(),
+	})
 	return int64(userID), err
 }
 
@@ -48,7 +50,10 @@ func (s *Store) GetOrCreateUserByEmail(ctx context.Context,
 	userID, err := s.queries.GetUserIDByEmail(ctx, email)
 
 	if err != nil && !errors.Is(err, auth.ErrUserNotFound) {
-		return s.queries.CreateUser(ctx, email)
+		return s.queries.CreateUser(ctx, sqlc.CreateUserParams{
+			Email:     email,
+			CreatedAt: s.clock.Now(),
+		})
 	}
 
 	return userID, nil

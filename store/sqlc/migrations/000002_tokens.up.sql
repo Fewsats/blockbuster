@@ -2,5 +2,6 @@ CREATE TABLE IF NOT EXISTS tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL,
     token TEXT UNIQUE NOT NULL,
-    expiration DATETIME NOT NULL
+    expiration DATETIME NOT NULL,
+    created_at DATETIME NOT NULL
 );

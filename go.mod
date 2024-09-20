@@ -4,10 +4,10 @@ go 1.22.0
 
 require (
 	github.com/aws/aws-sdk-go v1.49.6
+	github.com/cloudflare/cloudflare-go v0.104.0
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-migrate/migrate/v4 v4.18.1
-	github.com/google/uuid v1.6.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/resendlabs/resend-go v1.7.0
@@ -15,7 +15,6 @@ require (
 
 require (
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
-	github.com/cloudflare/cloudflare-go v0.104.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/context v1.1.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
