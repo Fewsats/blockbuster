@@ -1,6 +1,7 @@
 package cloudflare
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -13,7 +14,8 @@ const (
 
 // Service is the main storage service interface.
 type Service struct {
-	r2 *R2Service
+	r2      *R2Service
+	streams *StreamsService
 
 	cfg *Config
 }
@@ -25,8 +27,15 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, fmt.Errorf("failed to create R2 service: %w", err)
 	}
 
+	streams, err := NewStreamsService(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Streams service: %w", err)
+	}
+
 	return &Service{
-		r2:  r2,
+		r2:      r2,
+		streams: streams,
+
 		cfg: cfg,
 	}, nil
 }
@@ -62,8 +71,8 @@ func (s *Service) DeleteVideoFile(key string) error {
 	return nil
 }
 
-func (s *Service) GenerateVideoUploadURL(key string) (string, error) {
-	return s.r2.GenerateVideoUploadURL(key)
+func (s *Service) GenerateVideoUploadURL(ctx context.Context) (string, string, error) {
+	return s.streams.GenerateVideoUploadURL(ctx)
 }
 
 func (s *Service) UploadPublicFile(fileID string,

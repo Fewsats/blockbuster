@@ -12,7 +12,6 @@ import (
 
 	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type Controller struct {
@@ -114,10 +113,15 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 		return
 	}
 
-	videoID := uuid.New().String()
+	uploadURL, streamID, err := c.cf.GenerateVideoUploadURL(ctx)
+	if err != nil {
+		c.logger.Error("Failed to generate upload URL", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate upload URL"})
+		return
+	}
 
 	coverURL, err := c.processAndUploadCoverImage(
-		videoID, req.CoverImage,
+		streamID, req.CoverImage,
 	)
 	if err != nil {
 		c.logger.Error("Failed to upload cover image", "error", err)
@@ -127,21 +131,13 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 		)
 		return
 	}
-
-	uploadURL, err := c.cf.GenerateVideoUploadURL(videoID)
-	if err != nil {
-		c.logger.Error("Failed to generate upload URL", "error", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate upload URL"})
-		return
-	}
-
 	_, err = c.store.CreateVideo(ctx, CreateVideoParams{
-		ExternalID:   videoID,
+		ExternalID:   streamID,
 		UserID:       userID,
 		Title:        req.Title,
 		Description:  req.Description,
 		CoverURL:     coverURL,
-		VideoURL:     c.cf.VideoURL(videoID),
+		VideoURL:     c.cf.VideoURL(streamID), // TODO(pol) check if correct after using streams
 		PriceInCents: req.PriceInCents,
 	})
 
@@ -154,7 +150,7 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 	ctx.JSON(
 		http.StatusOK,
 		UploadVideoResponse{
-			VideoID:   videoID,
+			VideoID:   streamID,
 			UploadURL: uploadURL,
 		},
 	)

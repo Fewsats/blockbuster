@@ -32,19 +32,19 @@ export function initVideoUpload() {
 
                 // Step 3: Upload the video file to the signed URL
                 const videoFile = formData.get('video');
+                const uploadFormData = new FormData();
+                uploadFormData.append('file', videoFile);
+
                 const uploadResponse = await fetch(uploadURL, {
-                    method: 'PUT',
-                    body: videoFile,
-                    headers: {
-                        'Content-Type': videoFile.type,
-                    },
+                    method: 'POST',
+                    body: uploadFormData,
                 });
 
                 if (uploadResponse.ok) {
                     alert('Video uploaded successfully!');
                     uploadForm.reset();
                 } else {
-                    throw new Error('Failed to upload video to storage');
+                    throw new Error('Failed to upload video to streams storage');
                 }
             } else {
                 throw new Error(data.error || 'Failed to initiate video upload');
