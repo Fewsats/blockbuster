@@ -39,7 +39,7 @@
     </nav>
 
     <main class="flex-grow container mx-auto mt-8 px-4">
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h3 class="text-xl font-semibold mb-4">Upload a New Video</h3>
             <form id="uploadForm" class="space-y-4">
                 <div>
@@ -70,6 +70,24 @@
                 <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Upload Video</button>
             </form>
         </div>
+
+        <div id="userVideos" class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-xl font-semibold mb-4">Your Uploaded Videos</h3>
+            <div id="videoList" class="space-y-4">
+                <!-- Video list will be populated here -->
+                <div class="bg-gray-100 rounded-lg shadow-md p-4 flex items-center space-x-4 cursor-pointer" onclick="window.location.href='/video/external_id'">
+                    <img src="cover_image_url" alt="Cover Image" class="w-16 h-16 rounded-md object-cover">
+                    <div class="flex-1">
+                        <h4 class="text-lg font-semibold">Video Title</h4>
+                        <p class="text-sm text-gray-600">Video Description</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">$2.00</p>
+                        <p class="text-sm text-gray-600">0 views</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <div id="authModal" class="modal">
@@ -83,13 +101,6 @@
                 <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Send Magic Link</button>
             </form>
             <div id="message" class="mt-4 text-sm text-center"></div>
-        </div>
-    </div>
-
-    <div id="userVideos" class="mt-8 bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-xl font-semibold mb-4">Your Uploaded Videos</h3>
-        <div id="videoList" class="space-y-4">
-            <!-- Video list will be populated here -->
         </div>
     </div>
 

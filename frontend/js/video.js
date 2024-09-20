@@ -84,12 +84,11 @@ export function initVideoList() {
         }
 
         videoList.innerHTML = videos.map(video => `
-            <div class="flex items-center justify-between border-b border-gray-200 pb-4">
+            <div class="flex items-center justify-between border-b border-gray-200 pb-4 cursor-pointer" onclick="window.location.href='/video/${video.external_id}'">
                 <div class="flex items-center space-x-4">
                     <img src="${video.cover_url}" alt="${video.title}" class="w-24 h-16 object-cover rounded">
                     <div>
                         <h4 class="font-semibold">${video.title}</h4>
-                        <p class="text-sm text-gray-500">${video.description}</p>
                     </div>
                 </div>
                 <div class="text-right">

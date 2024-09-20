@@ -19,7 +19,7 @@ type Querier interface {
 	GetToken(ctx context.Context, token string) (Token, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserIDByEmail(ctx context.Context, email string) (int64, error)
-	GetVideo(ctx context.Context, externalID string) (Video, error)
+	GetVideoByExternalID(ctx context.Context, externalID string) (Video, error)
 	IncrementVideoViews(ctx context.Context, externalID string) (Video, error)
 	ListUserVideos(ctx context.Context, userID int64) ([]Video, error)
 	SearchVideos(ctx context.Context, arg SearchVideosParams) ([]Video, error)

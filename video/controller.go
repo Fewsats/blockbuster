@@ -3,6 +3,7 @@ package video
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -34,7 +35,7 @@ func NewController(cloudflareService *cloudflare.Service, store Store,
 
 func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 	router.POST("/video/upload", c.UploadVideo)
-	router.GET("/video/:id", nil)
+	router.GET("/video/:id", c.ServeVideoPage)
 	router.GET("/video/search", nil)
 }
 
@@ -140,7 +141,7 @@ func (c *Controller) UploadVideo(ctx *gin.Context) {
 		Title:        req.Title,
 		Description:  req.Description,
 		CoverURL:     coverURL,
-		VideoURL:     uploadURL,
+		VideoURL:     c.cf.VideoURL(videoID),
 		PriceInCents: req.PriceInCents,
 	})
 
@@ -176,6 +177,10 @@ func (c *Controller) ListUserVideos(ctx *gin.Context) {
 		return
 	}
 
+	for _, v := range videos {
+		v.CoverURL = c.cf.PublicFileURL(fmt.Sprintf("cover-images/%s", v.ExternalID))
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{"videos": videos})
 }
 
@@ -193,4 +198,40 @@ func (c *Controller) DeleteVideo(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func (c *Controller) ServeVideoPage(ctx *gin.Context) {
+	videoID := ctx.Param("id")
+
+	video, err := c.store.GetVideoByExternalID(ctx, videoID)
+	if err != nil {
+		c.logger.Error("Failed to get video by ID", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video"})
+		return
+	}
+	presignedURL, err := c.cf.GenerateVideoViewURL(video.ExternalID)
+	if err != nil {
+		c.logger.Error("Failed to generate presigned URL", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate video URL"})
+		return
+	}
+	video.VideoURL = presignedURL
+
+	c.logger.Info("Video data", "video", video)
+
+	tmpl, err := template.ParseFiles("frontend/video.html")
+	if err != nil {
+		c.logger.Error("Failed to parse template", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse template"})
+		return
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, video); err != nil {
+		c.logger.Error("Failed to execute template", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to render template"})
+		return
+	}
+
+	ctx.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
 }

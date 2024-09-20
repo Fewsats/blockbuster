@@ -3,7 +3,7 @@ INSERT INTO videos (external_id, user_id, title, description, video_url, cover_u
 VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
--- name: GetVideo :one
+-- name: GetVideoByExternalID :one
 SELECT * FROM videos
 WHERE external_id = ? LIMIT 1;
 

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }}</title>
+    <!-- OpenGraph Metadata -->
+    <meta property="og:title" content="{{ .Title }}">
+    <meta property="og:description" content="{{ .Description }}">
+    <meta property="og:type" content="video.other">
+    <meta property="og:url" content="{{ .VideoURL }}">
+    <meta property="og:video" content="{{ .VideoURL }}">
+    <meta property="og:video:type" content="video/mp4">
+    <meta property="og:video:width" content="640">
+    <meta property="og:video:height" content="360">
+    <meta property="og:image" content="{{ .CoverURL }}">
+    <style>
+        .video-container {
+            position: relative;
+            width: 640px;
+            height: 360px;
+            margin: 0 auto;
+            background-color: #000;
+        }
+        .video-preview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ .Title }}</h1>
+    <p>{{ .Description }}</p>
+    <div class="video-container">
+        <img src="{{ .CoverURL }}" alt="Video preview" class="video-preview" onclick="playVideo()">
+        <div class="play-button" onclick="playVideo()">▶</div>
+        <video id="video-player" width="640" height="360" controls style="display: none;">
+            <source src="{{ .VideoURL }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    <script>
+        function playVideo() {
+            const videoPlayer = document.getElementById('video-player');
+            const videoPreview = document.querySelector('.video-preview');
+            const playButton = document.querySelector('.play-button');
+            
+            videoPreview.style.display = 'none';
+            playButton.style.display = 'none';
+            videoPlayer.style.display = 'block';
+            videoPlayer.play();
+        }
+    </script>
+</body>
+</html>

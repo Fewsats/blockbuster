@@ -9,7 +9,7 @@ import (
 type Store interface {
 	GetOrCreateUserByEmail(ctx context.Context, email string) (int64, error)
 	CreateVideo(ctx context.Context, params CreateVideoParams) (*Video, error)
-	// GetVideo(ctx context.Context, externalID string) (*Video, error)
+	GetVideoByExternalID(ctx context.Context, externalID string) (*Video, error)
 	ListUserVideos(ctx context.Context, userID int64) ([]*Video, error)
 	DeleteVideo(ctx context.Context, externalID string) error
 	// SearchVideos(ctx context.Context, query string, limit, offset int32) ([]*Video, error)

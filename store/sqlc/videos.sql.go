@@ -61,13 +61,13 @@ func (q *Queries) DeleteVideo(ctx context.Context, externalID string) error {
 	return err
 }
 
-const getVideo = `-- name: GetVideo :one
+const getVideoByExternalID = `-- name: GetVideoByExternalID :one
 SELECT id, external_id, user_id, title, description, video_url, cover_url, price_in_cents, total_views, created_at FROM videos
 WHERE external_id = ? LIMIT 1
 `
 
-func (q *Queries) GetVideo(ctx context.Context, externalID string) (Video, error) {
-	row := q.db.QueryRowContext(ctx, getVideo, externalID)
+func (q *Queries) GetVideoByExternalID(ctx context.Context, externalID string) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getVideoByExternalID, externalID)
 	var i Video
 	err := row.Scan(
 		&i.ID,

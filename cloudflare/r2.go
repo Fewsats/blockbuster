@@ -52,9 +52,20 @@ func (r *R2Service) VideoURL(key string) string {
 }
 
 func (r *R2Service) PublicFileURL(key string) string {
-	return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s", r.publicBucket, key)
+	// TODO(pol) this is a dev access to staging bucket hardcoded
+	return fmt.Sprintf("https://pub-3c55410f5c574362bbaa52948499969e.r2.dev/%s", key)
+	// return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s", r.publicBucket, key)
 }
 
+func (r *R2Service) GenerateVideoViewURL(key string) (string, error) {
+	req, _ := r.r2.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(r.videoBucket),
+		Key:    aws.String(key),
+	})
+	return req.Presign(defaultExpireTime)
+}
+
+// GenerateVideoUploadURL generates a presigned URL for a video in the storage provider.
 func (r *R2Service) GenerateVideoUploadURL(key string) (string, error) {
 	req, _ := r.r2.PutObjectRequest(&s3.PutObjectInput{
 		Bucket: aws.String(r.videoBucket),

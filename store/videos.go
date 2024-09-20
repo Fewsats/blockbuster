@@ -32,16 +32,25 @@ func (s *Store) DeleteVideo(ctx context.Context, externalID string) error {
 	return s.queries.DeleteVideo(ctx, externalID)
 }
 
-// func (s *Store) GetVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
-// 	return s.queries.GetVideo(ctx, id)
-// }
+func (s *Store) GetVideoByExternalID(ctx context.Context, externalID string) (*video.Video, error) {
+	v, err := s.queries.GetVideoByExternalID(ctx, externalID)
+	if err != nil {
+		return nil, err
+	}
 
-// func (s *Store) ListVideos(ctx context.Context, limit, offset int32) ([]*sqlc.Video, error) {
-// 	return s.queries.ListVideos(ctx, sqlc.ListVideosParams{
-// 		Limit:  limit,
-// 		Offset: offset,
-// 	})
-// }
+	return &video.Video{
+		ID:           v.ID,
+		ExternalID:   v.ExternalID,
+		UserID:       v.UserID,
+		Title:        v.Title,
+		Description:  v.Description,
+		VideoURL:     v.VideoUrl,
+		CoverURL:     v.CoverUrl,
+		PriceInCents: v.PriceInCents,
+		TotalViews:   v.TotalViews,
+		CreatedAt:    v.CreatedAt.Time,
+	}, nil
+}
 
 func (s *Store) ListUserVideos(ctx context.Context,
 	userID int64) ([]*video.Video, error) {

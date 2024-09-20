@@ -17,3 +17,4 @@ venv
 *.db
 
 uploads
+.DS_store

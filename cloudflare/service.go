@@ -31,10 +31,20 @@ func NewService(cfg *Config) (*Service, error) {
 	}, nil
 }
 
-// // FileURL returns the URL of a file in the storage provider.
-// func (s *Service) PublicFileURL(key string) string {
-// 	return s.r2.PublicFileURL(key)
-// }
+// PublicFileURL returns the URL of a file in the storage provider.
+func (s *Service) PublicFileURL(key string) string {
+	return s.r2.PublicFileURL(key)
+}
+
+// VideoURL returns the URL of a video in the storage provider.
+func (s *Service) VideoURL(key string) string {
+	return s.r2.VideoURL(key)
+}
+
+// GenerateVideoViewURL generates a presigned URL for a video in the storage provider.
+func (s *Service) GenerateVideoViewURL(key string) (string, error) {
+	return s.r2.GenerateVideoViewURL(key)
+}
 
 func (s *Service) DeletePublicFile(key string) error {
 	err := s.r2.DeletePublicFile(key)
@@ -56,7 +66,8 @@ func (s *Service) GenerateVideoUploadURL(key string) (string, error) {
 	return s.r2.GenerateVideoUploadURL(key)
 }
 
-func (s *Service) UploadPublicFile(fileID string, prefix string, reader io.ReadSeeker) (string, error) {
+func (s *Service) UploadPublicFile(fileID string,
+	prefix string, reader io.ReadSeeker) (string, error) {
 
 	key := fmt.Sprintf("%s/%s", prefix, fileID)
 	return s.r2.UploadPublicFile(key, reader)
