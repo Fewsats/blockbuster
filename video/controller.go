@@ -25,24 +25,24 @@ const (
 )
 
 type Controller struct {
-	cf     *cloudflare.Service
-	videos *Manager
-	l402   *l402.Authenticator
+	cf            *cloudflare.Service
+	videos        *Manager
+	authenticator Authenticator
 
 	store  Store
 	logger *slog.Logger
 }
 
-func NewController(cf *cloudflare.Service, orders OrdersMgr,
-	l402 *l402.Authenticator, notifications NotificationService,
-	store Store, logger *slog.Logger, clock utils.Clock) *Controller {
+func NewController(cf CloudflareService, orders OrdersMgr,
+	authenticator Authenticator, store Store, logger *slog.Logger,
+	clock utils.Clock) *Controller {
 
-	manager := NewManager(orders, cf, l402, notifications,
+	manager := NewManager(orders, cf, authenticator,
 		store, logger, clock)
 
 	return &Controller{
-		l402:   l402,
-		videos: manager,
+		authenticator: authenticator,
+		videos:        manager,
 
 		store:  store,
 		logger: logger,
@@ -135,14 +135,14 @@ func (c *Controller) UploadVideo(gCtx *gin.Context) {
 		return
 	}
 
-	uploadURL, streamID, err := c.cf.GenerateVideoUploadURL(gCtx)
+	uploadURL, externalID, err := c.cf.GenerateVideoUploadURL(gCtx)
 	if err != nil {
 		c.logger.Error("Failed to generate upload URL", "error", err)
 		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate upload URL"})
 		return
 	}
 
-	coverURL, err := c.processAndUploadCoverImage(gCtx, streamID, req.CoverImage)
+	coverURL, err := c.processAndUploadCoverImage(gCtx, externalID, req.CoverImage)
 	if err != nil {
 		c.logger.Error("Failed to upload cover image", "error", err)
 		gCtx.JSON(
@@ -152,7 +152,7 @@ func (c *Controller) UploadVideo(gCtx *gin.Context) {
 		return
 	}
 	_, err = c.store.CreateVideo(gCtx, CreateVideoParams{
-		ExternalID:   streamID,
+		ExternalID:   externalID,
 		UserID:       userID,
 		Title:        req.Title,
 		Description:  req.Description,
@@ -169,7 +169,7 @@ func (c *Controller) UploadVideo(gCtx *gin.Context) {
 	gCtx.JSON(
 		http.StatusOK,
 		UploadVideoResponse{
-			VideoID:   streamID,
+			VideoID:   externalID,
 			UploadURL: uploadURL,
 		},
 	)
@@ -233,30 +233,13 @@ type StreamVideoRequest struct {
 // }
 
 func (c *Controller) StreamVideo(gCtx *gin.Context) {
-	var req StreamVideoRequest
-	if err := gCtx.ShouldBindJSON(&req); err != nil {
-		c.logger.Error("Invalid request", "error", err)
-		gCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	err := c.l402.ValidateSignature(req.PubKey, req.Signature,
-		req.Domain, req.Timestamp)
-	if err != nil {
-		c.logger.Error("Invalid request", "error", err)
-		gCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
 	ctx := gCtx.Request.Context()
-
 	externalID, err := extractExternalVideoID(gCtx)
 	if err != nil {
 		c.logger.Debug(
 			"invalid file ID",
 			"error", err,
 		)
-
 		gCtx.JSON(
 			http.StatusBadRequest,
 			gin.H{"error": "invalid file ID"},
@@ -265,6 +248,7 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 		return
 	}
 
+	// Step 0: Check if the video is ready to stream
 	err = c.videos.IsVideoReady(ctx, externalID)
 	if err != nil {
 		c.logger.Error("Video is not ready to stream", "error", err)
@@ -275,58 +259,35 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 		return
 	}
 
+	// Step 1: Check if the user has provided valid L402 credentials
 	autHeader := gCtx.GetHeader("Authorization")
-	paymentHash, err := c.l402.ValidateL402Credentials(ctx, autHeader)
+	paymentHash, err := c.authenticator.ValidateL402Credentials(ctx, autHeader)
+
 	switch {
-	case errors.Is(err, l402.ErrMissingAuthorizationHeader) || errors.Is(err, l402.ErrInvalidPreimage):
-		c.logger.Debug(
-			"missing Authorization header",
-			"error", err,
-		)
-
-		externalID := externalID
-		challenge, err := c.videos.CreateL402Challenge(ctx, req.PubKey, externalID)
+	// Step 1.1: A set of valid L402 credentials was provided so we will record the sale
+	// and allow the user to stream the video.
+	case err == nil:
+		err = c.videos.RecordPurchaseAndView(ctx, externalID, paymentHash, "videos")
 		if err != nil {
 			c.logger.Error(
-				"failed to create challenge",
-				"file_id", externalID,
+				"failed to record purchase",
+				"external_id", externalID,
 				"error", err,
 			)
+		}
 
-			gCtx.JSON(
-				http.StatusInternalServerError,
-				gin.H{"error": "failed to create L402 challenge"},
-			)
-
+		presignedURL, err := c.videos.GenerateStreamURL(gCtx, externalID)
+		if err != nil {
+			c.logger.Error("Failed to generate stream URL", "error", err)
+			gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate stream URL"})
 			return
 		}
 
-		headerKey := challenge.HeaderKey()
-		headerValue, err := challenge.HeaderValue()
-		if err != nil {
-			c.logger.Error(
-				"failed to get challenge header value",
-				"error", err,
-			)
-
-			gCtx.JSON(
-				http.StatusInternalServerError,
-				gin.H{"error": "failed to get challenge header value"},
-			)
-
-			return
-		}
-
-		gCtx.Writer.Header().Set(headerKey, headerValue)
-
-		gCtx.JSON(
-			http.StatusPaymentRequired,
-			gin.H{"error": "Payment Required"},
-		)
-
+		gCtx.JSON(http.StatusOK, gin.H{"url": presignedURL})
 		return
 
-	case err != nil:
+	case !errors.Is(err, l402.ErrMissingAuthorizationHeader) && !errors.Is(err, l402.ErrInvalidPreimage):
+		// Step 1.2 Unexpected error with L402 credentials, we will fail instead of returning a L402
 		c.logger.Debug(
 			"unable to extract L402 credentials",
 			"header", autHeader,
@@ -340,23 +301,64 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 		return
 	}
 
-	// A set of valid L402 credentials was provided so we will record the sale
-	// and allow the user to download the file.
-	err = c.videos.RecordPurchase(ctx, paymentHash, "videos")
-	if err != nil {
-		c.logger.Error(
-			"failed to record purchase",
-			"external_id", externalID,
-			"error", err,
-		)
-	}
+	// Step 2: No L402 credentials have been provided, let's check if the request is from a valid
+	// user and contains all the required params to send back a challenge
+	// This step is reached when err == ErrMissingAuthorizationHeader || ErrInvalidPreimage
+	c.logger.Debug(
+		"missing Authorization header",
+		"error", err,
+	)
 
-	presignedURL, err := c.videos.GenerateStreamURL(gCtx, externalID)
-	if err != nil {
-		c.logger.Error("Failed to generate stream URL", "error", err)
-		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate stream URL"})
+	var req StreamVideoRequest
+	if err := gCtx.ShouldBindJSON(&req); err != nil {
+		c.logger.Error("Invalid request", "error", err)
+		gCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	gCtx.JSON(http.StatusOK, gin.H{"url": presignedURL})
+	err = c.authenticator.ValidateSignature(req.PubKey, req.Signature,
+		req.Domain, req.Timestamp)
+	if err != nil {
+		c.logger.Error("Invalid request", "error", err)
+		gCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	challenge, err := c.videos.CreateL402Challenge(ctx, req.PubKey, externalID)
+	if err != nil {
+		c.logger.Error(
+			"failed to create challenge",
+			"file_id", externalID,
+			"error", err,
+		)
+
+		gCtx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to create L402 challenge"},
+		)
+
+		return
+	}
+
+	headerKey := challenge.HeaderKey()
+	headerValue, err := challenge.HeaderValue()
+	if err != nil {
+		c.logger.Error(
+			"failed to get challenge header value",
+			"error", err,
+		)
+
+		gCtx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "failed to get challenge header value"},
+		)
+
+		return
+	}
+
+	gCtx.Writer.Header().Set(headerKey, headerValue)
+
+	gCtx.JSON(
+		http.StatusPaymentRequired,
+		gin.H{"error": "Payment Required"},
+	)
 }

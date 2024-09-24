@@ -47,11 +47,11 @@ func (s *StreamsService) generateVideoUploadURL(ctx context.Context) (string, st
 }
 
 func (s *StreamsService) getStreamVideoInfo(ctx context.Context,
-	videoID string) (*cloudflare.StreamVideo, error) {
+	externalID string) (*cloudflare.StreamVideo, error) {
 
 	params := cloudflare.StreamParameters{
 		AccountID: s.accountID,
-		VideoID:   videoID,
+		VideoID:   externalID,
 	}
 
 	video, err := s.api.StreamGetVideo(context.Background(), params)
@@ -63,11 +63,11 @@ func (s *StreamsService) getStreamVideoInfo(ctx context.Context,
 }
 
 func (s *StreamsService) generateStreamURL(ctx context.Context,
-	videoID string) (string, error) {
+	externalID string) (string, error) {
 
 	params := cloudflare.StreamSignedURLParameters{
 		AccountID: s.accountID,
-		VideoID:   videoID,
+		VideoID:   externalID,
 	}
 
 	url, err := s.api.StreamCreateSignedURL(ctx, params)

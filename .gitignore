@@ -18,3 +18,4 @@ venv
 
 uploads
 .DS_store
+*.txt

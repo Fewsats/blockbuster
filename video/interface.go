@@ -4,13 +4,27 @@ import (
 	"context"
 	"io"
 	"time"
+
+	"github.com/cloudflare/cloudflare-go"
+	"github.com/fewsats/blockbuster/l402"
 )
+
+type Authenticator interface {
+	ValidateSignature(pubKeyHex, signatureHex, domain string,
+		timestamp int64) error
+
+	NewChallenge(ctx context.Context, domain, pubKeyHex string,
+		priceInCents uint64, caveats map[string]string) (*l402.Challenge, error)
+
+	ValidateL402Credentials(ctx context.Context,
+		authHeader string) (string, error)
+}
 
 type Store interface {
 	GetOrCreateUserByEmail(ctx context.Context, email string) (int64, error)
 	CreateVideo(ctx context.Context, params CreateVideoParams) (*Video, error)
 	UpdateVideo(ctx context.Context, externalID string,
-		params UpdateVideoParams) (*Video, error)
+		params *CloudflareVideoInfo) (*Video, error)
 
 	GetVideoByExternalID(ctx context.Context, externalID string) (*Video, error)
 	ListUserVideos(ctx context.Context, userID int64) ([]*Video, error)
@@ -30,24 +44,20 @@ type NotificationService interface {
 
 type OrdersMgr interface {
 	// CreateOffer creates a new offer.
-	CreateOffer(ctx context.Context, externalID, payHash string) error
+	CreateOffer(ctx context.Context, userID int64,
+		PriceInCents uint64, externalID, paymentHash string) error
 
 	// RecordPurchase creates a new purchase if there is not one already for
 	// the given payment hash.
-	RecordPurchase(ctx context.Context, payHash, serviceType string) error
+	RecordPurchase(ctx context.Context, paymentHash, serviceType string) error
 }
 
 type CloudflareService interface {
-	GetStreamVideoInfo(ctx context.Context, videoID string) (*UpdateVideoParams, error)
+	GetStreamVideoInfo(ctx context.Context, externalID string) (*cloudflare.StreamVideo, error)
 	GenerateVideoUploadURL(ctx context.Context) (string, string, error)
-	UploadPublicFile(key, prefix string, reader io.ReadSeeker) (string, error)
-	GenerateStreamURL(ctx context.Context, videoID string) (string, error)
-}
-
-// PublicStorage is the interface for managing public files
-type PublicStorage interface {
-	// UploadPublicFile uploads a public file to the storage provider.
-	UploadPublicFile(fileID, prefix string, reader io.ReadSeeker) (string, error)
+	UploadPublicFile(ctx context.Context, key, prefix string,
+		reader io.ReadSeeker) (string, error)
+	GenerateStreamURL(ctx context.Context, externalID string) (string, error)
 }
 
 type CreateVideoParams struct {
@@ -60,7 +70,7 @@ type CreateVideoParams struct {
 	PriceInCents int64
 }
 
-type UpdateVideoParams struct {
+type CloudflareVideoInfo struct {
 	ThumbnailURL      string
 	DurationInSeconds float64
 	SizeInBytes       int64

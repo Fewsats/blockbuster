@@ -11,7 +11,6 @@ import (
 	"github.com/fewsats/blockbuster/email"
 	"github.com/fewsats/blockbuster/l402"
 	"github.com/fewsats/blockbuster/lightning"
-	"github.com/fewsats/blockbuster/notifications"
 	"github.com/fewsats/blockbuster/orders"
 	"github.com/fewsats/blockbuster/server"
 	storePkg "github.com/fewsats/blockbuster/store"
@@ -73,12 +72,11 @@ func main() {
 	)
 
 	// Managers
-	ordersMgr := orders.NewManager(logger, store, notificationManager)
-	notificationMgr := notifications.NewManager(logger, &cfg.Notifications)
+	ordersMgr := orders.NewManager(logger, store)
 
 	authController := auth.NewController(emailService, logger, store, &cfg.Auth)
 	videoController := video.NewController(cloudflareService, ordersMgr,
-		authenticator, notificationsMgr, store, logger, clock)
+		authenticator, store, logger, clock)
 
 	srv, err := server.NewServer(logger, cfg, authController, videoController)
 	if err != nil {

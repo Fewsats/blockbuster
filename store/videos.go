@@ -87,7 +87,7 @@ func (s *Store) ListUserVideos(ctx context.Context,
 }
 
 func (s *Store) UpdateVideo(ctx context.Context, externalID string,
-	params video.UpdateVideoParams) (*video.Video, error) {
+	params *video.CloudflareVideoInfo) (*video.Video, error) {
 
 	v, err := s.queries.UpdateVideo(ctx, sqlc.UpdateVideoParams{
 		ExternalID: externalID,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -43,14 +42,6 @@ func NewR2Service(cfg *Config) (*R2Service, error) {
 	}, nil
 }
 
-const (
-	defaultExpireTime = 1 * time.Hour
-)
-
-func (r *R2Service) videoURL(key string) string {
-	return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s", r.videoBucket, key)
-}
-
 func (r *R2Service) publicFileURL(key string) string {
 	// TODO(pol) this is a dev access to staging bucket hardcoded
 	return fmt.Sprintf("https://pub-3c55410f5c574362bbaa52948499969e.r2.dev/%s", key)
@@ -58,7 +49,7 @@ func (r *R2Service) publicFileURL(key string) string {
 }
 
 func (r *R2Service) uploadPublicFile(ctx context.Context, key string, reader io.ReadSeeker) (string, error) {
-	_, err := r.r2.PutObject(&s3.PutObjectInput{
+	_, err := r.r2.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(r.publicBucket),
 		Key:    aws.String(key),
 		Body:   reader,
@@ -70,7 +61,7 @@ func (r *R2Service) uploadPublicFile(ctx context.Context, key string, reader io.
 }
 
 func (r *R2Service) deletePublicFile(ctx context.Context, key string) error {
-	_, err := r.r2.DeleteObject(&s3.DeleteObjectInput{
+	_, err := r.r2.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(r.publicBucket),
 		Key:    aws.String(key),
 	})

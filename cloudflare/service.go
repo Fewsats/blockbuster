@@ -47,11 +47,6 @@ func (s *Service) PublicFileURL(key string) string {
 	return s.r2.publicFileURL(key)
 }
 
-// VideoURL returns the URL of a video in the storage provider.
-func (s *Service) VideoURL(key string) string {
-	return s.r2.videoURL(key)
-}
-
 // GenerateVideoViewURL generates a presigned URL for a video in the storage provider.
 func (s *Service) GenerateStreamURL(ctx context.Context,
 	key string) (string, error) {
@@ -60,9 +55,9 @@ func (s *Service) GenerateStreamURL(ctx context.Context,
 }
 
 func (s *Service) GetStreamVideoInfo(ctx context.Context,
-	videoID string) (*cloudflare.StreamVideo, error) {
+	externalID string) (*cloudflare.StreamVideo, error) {
 
-	return s.streams.getStreamVideoInfo(ctx, videoID)
+	return s.streams.getStreamVideoInfo(ctx, externalID)
 }
 
 func (s *Service) GenerateVideoUploadURL(ctx context.Context) (string,

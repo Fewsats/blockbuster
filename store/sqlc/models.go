@@ -16,6 +16,29 @@ type MacaroonCredential struct {
 	CreatedAt interface{}
 }
 
+type Offer struct {
+	ID             int64
+	UserID         int64
+	ExternalID     string
+	PaymentHash    string
+	PriceInCents   int64
+	Currency       string
+	ExpirationDate sql.NullTime
+	CreatedAt      time.Time
+}
+
+type Purchase struct {
+	ID             int64
+	UserID         int64
+	ExternalID     string
+	ServiceType    string
+	PriceInCents   int64
+	Currency       string
+	ExpirationDate sql.NullTime
+	PaymentHash    string
+	CreatedAt      time.Time
+}
+
 type Token struct {
 	ID         int64
 	Email      string
