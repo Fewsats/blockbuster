@@ -13,10 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec/v2/schnorr" // Add this import
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/fewsats/blockbuster/utils"
 	"gopkg.in/macaroon.v2"
-	// Ensure you have the correct package for secp256k1
 )
 
 var (
@@ -58,8 +57,7 @@ func NewAuthenticator(logger *slog.Logger, provider InvoiceProvider,
 	}
 }
 
-func (l *Authenticator) mintMacaroon(ctx context.Context,
-	location string, pubKey, rootKey []byte,
+func (l *Authenticator) mintMacaroon(location string, pubKey, rootKey []byte,
 	caveats map[string]string) (*macaroon.Macaroon, error) {
 
 	mac, err := macaroon.New(rootKey, pubKey, location,
@@ -143,9 +141,8 @@ func (l *Authenticator) NewChallenge(ctx context.Context, productName string,
 	}
 
 	location := "fewsats.com"
-	mac, err := l.mintMacaroon(
-		ctx, location, buf.Bytes(), randomRootKey[:], caveats,
-	)
+	mac, err := l.mintMacaroon(location, buf.Bytes(), randomRootKey[:],
+		caveats)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create macaroon: %v", err)
 	}
@@ -235,17 +232,18 @@ func (l *Authenticator) ValidateSignature(pubKeyHex, signatureHex,
 	domain string, timestamp int64) error {
 
 	// Check if the timestamp is within 10 minutes of the current time
-	if time.Now().Sub(time.Unix(timestamp, 0)) > 10*time.Minute {
+	if time.Since(time.Unix(timestamp, 0)) > 10*time.Minute {
 		return fmt.Errorf("timestamp is too old")
 	}
 
+	// TODO(pol) set up domain properly instead of hardcoding
 	// Check if the domain is valid
 	if domain != "ourdomain.com" {
 		return fmt.Errorf("invalid domain")
 	}
 
 	// Create the message to be signed
-	message := fmt.Sprintf("%s%d", domain, timestamp)
+	message := fmt.Sprintf("%s:%d", domain, timestamp)
 
 	// Verify the signature
 	err := verifySignature(pubKeyHex, signatureHex, message)
