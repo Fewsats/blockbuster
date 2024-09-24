@@ -1,9 +1,12 @@
 package video
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
+	"mime/multipart"
 	"time"
 
 	"github.com/fewsats/blockbuster/l402"
@@ -48,13 +51,13 @@ func (m *Manager) IsVideoReady(ctx context.Context, externalID string) error {
 	}
 	// first time the video is accessed we'll populate it with the cloudflare info
 	if !video.ReadyToStream {
-		videoInfo, err := m.cf.GetStreamVideoInfo(ctx, video.ExternalID)
+		videoInfo, err := m.cf.GetStreamVideoInfo(ctx, externalID)
 		if err != nil {
 			m.logger.Error("Failed to get video info", "error", err)
 			return fmt.Errorf("failed to get video info: %w", err)
 		}
 
-		video, err = m.store.UpdateVideo(ctx, video.ExternalID, &CloudflareVideoInfo{
+		video, err = m.store.UpdateVideo(ctx, externalID, &CloudflareVideoInfo{
 			ThumbnailURL:      videoInfo.Thumbnail,
 			DurationInSeconds: videoInfo.Duration,
 			SizeInBytes:       int64(videoInfo.Size),
@@ -136,4 +139,69 @@ func (m *Manager) RecordPurchaseAndView(ctx context.Context, externalID, payment
 	}
 
 	return nil
+}
+
+func (m *Manager) ProcessAndUploadCoverImage(gCtx context.Context,
+	externalID string, coverImageHeader *multipart.FileHeader) (string, error) {
+
+	file, err := coverImageHeader.Open()
+	if err != nil {
+		return "", fmt.Errorf("failed to open cover image: %w", err)
+	}
+	defer file.Close()
+
+	coverImageBytes, err := io.ReadAll(file)
+	if err != nil {
+		return "", fmt.Errorf("failed to read cover image: %w", err)
+	}
+
+	coverImageReader := bytes.NewReader(coverImageBytes)
+
+	coverURL, err := m.cf.UploadPublicFile(gCtx, externalID,
+		"cover-images", coverImageReader)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload cover file: %w", err)
+	}
+
+	return coverURL, nil
+}
+
+func (m *Manager) GenerateVideoUploadURL(ctx context.Context) (string, string, error) {
+	uploadURL, externalID, err := m.cf.GenerateVideoUploadURL(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate upload URL: %w", err)
+	}
+	return uploadURL, externalID, nil
+}
+
+func (m *Manager) PrepareVideoUpload(ctx context.Context, userID int64,
+	req UploadVideoRequest) (string, string, error) {
+
+	uploadURL, externalID, err := m.GenerateVideoUploadURL(ctx)
+	if err != nil {
+		m.logger.Error("Failed to generate upload URL", "error", err)
+		return "", "", fmt.Errorf("failed to generate upload URL: %w", err)
+	}
+
+	coverURL, err := m.ProcessAndUploadCoverImage(ctx, externalID, req.CoverImage)
+	if err != nil {
+		m.logger.Error("Failed to upload cover image", "error", err)
+		return "", "", fmt.Errorf("failed to upload cover image: %w", err)
+	}
+
+	_, err = m.store.CreateVideo(ctx, CreateVideoParams{
+		ExternalID:   externalID,
+		UserID:       userID,
+		Title:        req.Title,
+		Description:  req.Description,
+		CoverURL:     coverURL,
+		PriceInCents: req.PriceInCents,
+	})
+
+	if err != nil {
+		m.logger.Error("Failed to create video", "error", err)
+		return "", "", fmt.Errorf("failed to save video metadata: %w", err)
+	}
+
+	return uploadURL, externalID, nil
 }

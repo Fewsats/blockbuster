@@ -73,10 +73,11 @@ func main() {
 
 	// Managers
 	ordersMgr := orders.NewManager(logger, store)
+	videoMgr := video.NewManager(ordersMgr, cloudflareService, authenticator,
+		store, logger, clock)
 
 	authController := auth.NewController(emailService, logger, store, &cfg.Auth)
-	videoController := video.NewController(cloudflareService, ordersMgr,
-		authenticator, store, logger, clock)
+	videoController := video.NewController(videoMgr, authenticator, store, logger)
 
 	srv, err := server.NewServer(logger, cfg, authController, videoController)
 	if err != nil {

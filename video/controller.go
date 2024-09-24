@@ -1,11 +1,8 @@
 package video
 
 import (
-	"bytes"
-	"context"
 	"errors"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -13,9 +10,7 @@ import (
 
 	"log/slog"
 
-	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/fewsats/blockbuster/l402"
-	"github.com/fewsats/blockbuster/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,7 +20,6 @@ const (
 )
 
 type Controller struct {
-	cf            *cloudflare.Service
 	videos        *Manager
 	authenticator Authenticator
 
@@ -33,16 +27,12 @@ type Controller struct {
 	logger *slog.Logger
 }
 
-func NewController(cf CloudflareService, orders OrdersMgr,
-	authenticator Authenticator, store Store, logger *slog.Logger,
-	clock utils.Clock) *Controller {
-
-	manager := NewManager(orders, cf, authenticator,
-		store, logger, clock)
+func NewController(videosMgr *Manager, authenticator Authenticator,
+	store Store, logger *slog.Logger) *Controller {
 
 	return &Controller{
 		authenticator: authenticator,
-		videos:        manager,
+		videos:        videosMgr,
 
 		store:  store,
 		logger: logger,
@@ -85,32 +75,6 @@ func (r *UploadVideoRequest) Validate() error {
 	return nil
 }
 
-func (c *Controller) processAndUploadCoverImage(gCtx context.Context,
-	externalID string, coverImageHeader *multipart.FileHeader) (string, error) {
-
-	file, err := coverImageHeader.Open()
-	if err != nil {
-		return "", fmt.Errorf("failed to open cover image: %w", err)
-	}
-	defer file.Close()
-
-	// Read the entire file into memory
-	coverImageBytes, err := io.ReadAll(file)
-	if err != nil {
-		return "", fmt.Errorf("failed to read cover image: %w", err)
-	}
-
-	coverImageReader := bytes.NewReader(coverImageBytes)
-
-	coverURL, err := c.cf.UploadPublicFile(gCtx, externalID,
-		"cover-images", coverImageReader)
-	if err != nil {
-		return "", fmt.Errorf("failed to upload cover file: %w", err)
-	}
-
-	return coverURL, nil
-}
-
 func (c *Controller) UploadVideo(gCtx *gin.Context) {
 	var req UploadVideoRequest
 	if err := gCtx.ShouldBind(&req); err != nil {
@@ -135,34 +99,10 @@ func (c *Controller) UploadVideo(gCtx *gin.Context) {
 		return
 	}
 
-	uploadURL, externalID, err := c.cf.GenerateVideoUploadURL(gCtx)
+	uploadURL, externalID, err := c.videos.PrepareVideoUpload(gCtx, userID, req)
 	if err != nil {
-		c.logger.Error("Failed to generate upload URL", "error", err)
-		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate upload URL"})
-		return
-	}
-
-	coverURL, err := c.processAndUploadCoverImage(gCtx, externalID, req.CoverImage)
-	if err != nil {
-		c.logger.Error("Failed to upload cover image", "error", err)
-		gCtx.JSON(
-			http.StatusInternalServerError,
-			gin.H{"error": "Failed to upload cover image"},
-		)
-		return
-	}
-	_, err = c.store.CreateVideo(gCtx, CreateVideoParams{
-		ExternalID:   externalID,
-		UserID:       userID,
-		Title:        req.Title,
-		Description:  req.Description,
-		CoverURL:     coverURL,
-		PriceInCents: req.PriceInCents,
-	})
-
-	if err != nil {
-		c.logger.Error("Failed to create video", "error", err)
-		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save video metadata"})
+		c.logger.Error("Failed to prepare video upload", "error", err)
+		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -217,21 +157,6 @@ type StreamVideoRequest struct {
 	Signature string `json:"signature" binding:"required"`
 }
 
-// func (r *StreamVideoRequest) Validate(auth *l402.Authenticator) error {
-// 	if time.Since(time.Unix(r.Timestamp, 0)) > 10*time.Minute ||
-// 		time.Until(time.Unix(r.Timestamp, 0)) > 10*time.Minute {
-
-// 		return fmt.Errorf("timestamp is too old or too far in the future")
-// 	}
-
-// 	// TODO(pol): validate domain
-// 	if r.Domain != "ourdomain.com" {
-// 		return fmt.Errorf("invalid domain")
-// 	}
-
-// 	return nil
-// }
-
 func (c *Controller) StreamVideo(gCtx *gin.Context) {
 	ctx := gCtx.Request.Context()
 	externalID, err := extractExternalVideoID(gCtx)
@@ -262,7 +187,6 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 	// Step 1: Check if the user has provided valid L402 credentials
 	autHeader := gCtx.GetHeader("Authorization")
 	paymentHash, err := c.authenticator.ValidateL402Credentials(ctx, autHeader)
-
 	switch {
 	// Step 1.1: A set of valid L402 credentials was provided so we will record the sale
 	// and allow the user to stream the video.
@@ -323,6 +247,7 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 		gCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	challenge, err := c.videos.CreateL402Challenge(ctx, req.PubKey, externalID)
 	if err != nil {
 		c.logger.Error(

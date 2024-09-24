@@ -54,7 +54,7 @@ func (s *StreamsService) getStreamVideoInfo(ctx context.Context,
 		VideoID:   externalID,
 	}
 
-	video, err := s.api.StreamGetVideo(context.Background(), params)
+	video, err := s.api.StreamGetVideo(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("error getting stream video: %w", err)
 	}
