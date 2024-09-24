@@ -2,12 +2,17 @@ package main
 
 import (
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/fewsats/blockbuster/auth"
 	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/fewsats/blockbuster/config"
 	"github.com/fewsats/blockbuster/email"
+	"github.com/fewsats/blockbuster/l402"
+	"github.com/fewsats/blockbuster/lightning"
+	"github.com/fewsats/blockbuster/notifications"
+	"github.com/fewsats/blockbuster/orders"
 	"github.com/fewsats/blockbuster/server"
 	storePkg "github.com/fewsats/blockbuster/store"
 	"github.com/fewsats/blockbuster/utils"
@@ -23,12 +28,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	emailService := email.NewResendService(logger, &cfg.Email)
-	cloudflareService, err := cloudflare.NewService(&cfg.Cloudflare)
-	if err != nil {
-		logger.Error("Failed to create cloudflare service", "error", err)
+	if err := cfg.SetLoggerLevel(); err != nil {
+		logger.Error(
+			"Unable to set logger level",
+			"error", err,
+		)
+
 		return
 	}
+
+	cfg.SetGinMode()
+
 	// Initialize the store.
 	clock := utils.NewRealClock()
 	store, err := storePkg.NewStore(logger, &cfg.Store, clock)
@@ -37,8 +47,38 @@ func main() {
 		os.Exit(1)
 	}
 
+	emailService := email.NewResendService(logger, &cfg.Email)
+	cloudflareService, err := cloudflare.NewService(&cfg.Cloudflare)
+	if err != nil {
+		logger.Error("Failed to create cloudflare service", "error", err)
+		return
+	}
+
+	var invoiceProvider l402.InvoiceProvider
+	switch cfg.Lightning.Provider {
+	case lightning.ProviderAlby:
+		invoiceProvider = lightning.NewAlbyProvider(
+			http.DefaultClient, cfg.Lightning.Alby.APIKey,
+		)
+
+	default:
+		logger.Error(
+			"Unknown lightning provider",
+			"provider", cfg.Lightning.Provider,
+		)
+	}
+
+	authenticator := l402.NewAuthenticator(
+		logger, invoiceProvider, store, clock,
+	)
+
+	// Managers
+	ordersMgr := orders.NewManager(logger, store, notificationManager)
+	notificationMgr := notifications.NewManager(logger, &cfg.Notifications)
+
 	authController := auth.NewController(emailService, logger, store, &cfg.Auth)
-	videoController := video.NewController(cloudflareService, store, logger)
+	videoController := video.NewController(cloudflareService, ordersMgr,
+		authenticator, notificationsMgr, store, logger, clock)
 
 	srv, err := server.NewServer(logger, cfg, authController, videoController)
 	if err != nil {

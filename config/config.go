@@ -8,6 +8,7 @@ import (
 	"github.com/fewsats/blockbuster/auth"
 	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/fewsats/blockbuster/email"
+	"github.com/fewsats/blockbuster/lightning"
 	"github.com/fewsats/blockbuster/store"
 	"github.com/gin-gonic/gin"
 	"github.com/jessevdk/go-flags"
@@ -39,6 +40,7 @@ type Config struct {
 	Email      email.Config      `group:"email" namespace:"email"`
 	Cloudflare cloudflare.Config `group:"cloudflare" namespace:"cloudflare"`
 	Store      store.Config      `group:"store" namespace:"store"`
+	Lightning  lightning.Config  `group:"lightning" namespace:"lightning"`
 }
 
 func (c *Config) Validate() error {
@@ -80,6 +82,7 @@ func DefaultConfig() *Config {
 		Email:      *email.DefaultConfig(),
 		Store:      *store.DefaultConfig(),
 		Cloudflare: *cloudflare.DefaultConfig(),
+		Lightning:  *lightning.DefaultConfig(),
 	}
 }
 

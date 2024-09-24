@@ -93,6 +93,8 @@ func (c *Controller) LoginHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Magic link sent to your email. Please check your inbox."})
 }
 
+// VerifyTokenHandler verifies the user token sent with a magic link
+// and sets the user session.
 func (c *Controller) VerifyTokenHandler(ctx *gin.Context) {
 	token := ctx.Query("token")
 	if token == "" {

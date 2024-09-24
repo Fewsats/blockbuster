@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+type MacaroonCredential struct {
+	ID        int64
+	TokenID   []byte
+	RootKey   []byte
+	CreatedAt interface{}
+}
+
 type Token struct {
 	ID         int64
 	Email      string

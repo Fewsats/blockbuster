@@ -16,11 +16,10 @@ ORDER BY created_at DESC;
 DELETE FROM videos
 WHERE external_id = ?;
 
--- name: IncrementVideoViews :one
+-- name: IncrementVideoViews :exec
 UPDATE videos
 SET total_views = total_views + 1
-WHERE external_id = ?
-RETURNING *;
+WHERE external_id = ?;
 
 -- name: SearchVideos :many
 SELECT * FROM videos

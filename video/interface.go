@@ -14,7 +14,27 @@ type Store interface {
 
 	GetVideoByExternalID(ctx context.Context, externalID string) (*Video, error)
 	ListUserVideos(ctx context.Context, userID int64) ([]*Video, error)
-	// SearchVideos(ctx context.Context, query string, limit, offset int32) ([]*Video, error)
+
+	// IncrementVideoViews increments the views of a video by 1.
+	IncrementVideoViews(ctx context.Context, externalID string) error
+}
+
+// NotificationService is the interface for sending notifications.
+type NotificationService interface {
+	// RegisterNewPurchaseEvent sends a notification for a new purchase.
+	RegisterNewPurchaseEvent(externalID, paymentHash, email string) error
+
+	// RegisterNewVideoUploadEvent sends a notification for a new video upload.
+	RegisterNewVideoUploadEvent(externalID, email string) error
+}
+
+type OrdersMgr interface {
+	// CreateOffer creates a new offer.
+	CreateOffer(ctx context.Context, externalID, payHash string) error
+
+	// RecordPurchase creates a new purchase if there is not one already for
+	// the given payment hash.
+	RecordPurchase(ctx context.Context, payHash, serviceType string) error
 }
 
 type CloudflareService interface {
@@ -23,16 +43,6 @@ type CloudflareService interface {
 	UploadPublicFile(key, prefix string, reader io.ReadSeeker) (string, error)
 	GenerateStreamURL(ctx context.Context, videoID string) (string, error)
 }
-
-// StorageProvider is the interface for interacting with a storage provider.
-// type StorageProvider interface {
-// 	// FileURL returns the URL of a file in the storage provider.
-// 	// FileURL(key string) string
-
-// 	// GenerateUploadURL generates a presigned URL for uploading a
-// 	// file directly to Cloudflare R2.
-// 	GenerateVidoUploadURL(key string) (string, error)
-// }
 
 // PublicStorage is the interface for managing public files
 type PublicStorage interface {

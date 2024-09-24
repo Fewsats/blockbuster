@@ -134,3 +134,7 @@ func (s *Store) UpdateVideo(ctx context.Context, externalID string,
 		CreatedAt:         v.CreatedAt,
 	}, nil
 }
+
+func (s *Store) IncrementVideoViews(ctx context.Context, externalID string) error {
+	return s.queries.IncrementVideoViews(ctx, externalID)
+}

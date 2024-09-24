@@ -96,34 +96,15 @@ func (q *Queries) GetVideoByExternalID(ctx context.Context, externalID string) (
 	return i, err
 }
 
-const incrementVideoViews = `-- name: IncrementVideoViews :one
+const incrementVideoViews = `-- name: IncrementVideoViews :exec
 UPDATE videos
 SET total_views = total_views + 1
 WHERE external_id = ?
-RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
 `
 
-func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) (Video, error) {
-	row := q.db.QueryRowContext(ctx, incrementVideoViews, externalID)
-	var i Video
-	err := row.Scan(
-		&i.ID,
-		&i.ExternalID,
-		&i.UserID,
-		&i.Title,
-		&i.Description,
-		&i.CoverUrl,
-		&i.PriceInCents,
-		&i.TotalViews,
-		&i.ThumbnailUrl,
-		&i.DurationInSeconds,
-		&i.SizeInBytes,
-		&i.InputHeight,
-		&i.InputWidth,
-		&i.ReadyToStream,
-		&i.CreatedAt,
-	)
-	return i, err
+func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) error {
+	_, err := q.db.ExecContext(ctx, incrementVideoViews, externalID)
+	return err
 }
 
 const listUserVideos = `-- name: ListUserVideos :many

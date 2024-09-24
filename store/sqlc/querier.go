@@ -16,11 +16,13 @@ type Querier interface {
 	DeleteExpiredTokens(ctx context.Context, expiration time.Time) error
 	DeleteToken(ctx context.Context, token string) error
 	DeleteVideo(ctx context.Context, externalID string) error
+	GetRootKeyByTokenID(ctx context.Context, tokenID []byte) ([]byte, error)
 	GetToken(ctx context.Context, token string) (Token, error)
 	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
 	GetUserIDByEmail(ctx context.Context, email string) (int64, error)
 	GetVideoByExternalID(ctx context.Context, externalID string) (Video, error)
-	IncrementVideoViews(ctx context.Context, externalID string) (Video, error)
+	IncrementVideoViews(ctx context.Context, externalID string) error
+	InsertMacaroonToken(ctx context.Context, arg InsertMacaroonTokenParams) (int64, error)
 	ListUserVideos(ctx context.Context, userID int64) ([]Video, error)
 	SearchVideos(ctx context.Context, arg SearchVideosParams) ([]Video, error)
 	UpdateUserVerified(ctx context.Context, arg UpdateUserVerifiedParams) error
