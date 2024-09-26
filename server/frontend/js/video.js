@@ -20,10 +20,18 @@ export function initVideoUpload() {
         const formData = new FormData(uploadForm);
 
         try {
-            // Step 1: Send form with upload video request
+            // Create a new FormData object excluding the video field
+            const metadataFormData = new FormData();
+            for (const [key, value] of formData.entries()) {
+                if (key !== 'video') {
+                    metadataFormData.append(key, value);
+                }
+            }
+
+            // Step 1: Send form with upload video request (excluding video file)
             const response = await fetch('/video/upload', {
                 method: 'POST',
-                body: formData,
+                body: metadataFormData,
             });
             const data = await response.json();
             if (response.ok) {
