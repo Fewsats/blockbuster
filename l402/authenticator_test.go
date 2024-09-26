@@ -134,7 +134,7 @@ func TestNewChallenge(t *testing.T) {
 
 			// Create authenticator
 			authenticator := NewAuthenticator(mockLogger, mockProvider,
-				mockStore, mockClock)
+				DefaultConfig(), mockStore, mockClock)
 
 			// Execute
 			challenge, err := authenticator.NewChallenge(ctx, tc.productName,
@@ -196,7 +196,7 @@ func generateKeysAndSignature(message string) (pubKeyHex,
 }
 
 func TestValidateSignature(t *testing.T) {
-	domain := "ourdomain.com"
+	domain := "localhost:8080"
 	timestamp := time.Now().Unix()
 	message := fmt.Sprintf("%s:%d", domain, timestamp)
 
@@ -231,7 +231,7 @@ func TestValidateSignature(t *testing.T) {
 			name:          "old timestamp",
 			pubKeyHex:     pubKeyHex,
 			signatureHex:  signatureHex,
-			domain:        "ourdomain.com",
+			domain:        "localhost:8080",
 			timestamp:     time.Now().Add(-11 * time.Minute).Unix(),
 			expectedError: "timestamp is too old",
 		},
@@ -239,7 +239,7 @@ func TestValidateSignature(t *testing.T) {
 			name:          "invalid signature",
 			pubKeyHex:     pubKeyHex,
 			signatureHex:  signatureHex2,
-			domain:        "ourdomain.com",
+			domain:        "localhost:8080",
 			timestamp:     timestamp,
 			expectedError: "signature verification failed",
 		},
@@ -247,7 +247,7 @@ func TestValidateSignature(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			authenticator := &Authenticator{}
+			authenticator := &Authenticator{cfg: DefaultConfig()}
 			err := authenticator.ValidateSignature(tc.pubKeyHex, tc.signatureHex, tc.domain, tc.timestamp)
 
 			if tc.expectedError != "" {

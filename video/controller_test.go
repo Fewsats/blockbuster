@@ -97,9 +97,9 @@ func (m *MockManager) RecordPurchase(ctx context.Context, externalID,
 	return args.Error(0)
 }
 
-func (m *MockManager) GenerateStreamURL(ctx context.Context, externalID string) (string, error) {
+func (m *MockManager) GenerateStreamURL(ctx context.Context, externalID string) (string, string, error) {
 	args := m.Called(ctx, externalID)
-	return args.Get(0).(string), args.Error(1)
+	return args.Get(0).(string), args.Get(1).(string), args.Error(2)
 }
 
 type MockOrdersMgr struct {
@@ -120,9 +120,9 @@ type MockCloudflareService struct {
 	mock.Mock
 }
 
-func (m *MockCloudflareService) GenerateStreamURL(ctx context.Context, externalID string) (string, error) {
+func (m *MockCloudflareService) GenerateStreamURL(ctx context.Context, externalID string) (string, string, error) {
 	args := m.Called(ctx, externalID)
-	return args.String(0), args.Error(1)
+	return args.String(0), args.String(1), args.Error(2)
 }
 
 func (m *MockCloudflareService) GenerateVideoUploadURL(ctx context.Context) (string, string, error) {
@@ -202,10 +202,10 @@ func TestStreamVideo(t *testing.T) {
 				).Return(nil)
 				mockCloudflare.On(
 					"GenerateStreamURL", mock.Anything, "externalID",
-				).Return("http://stream.url", nil)
+				).Return("http://hls_stream.url", "http://dash_stream.url", nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   "http://stream.url",
+			expectedBody:   "http://hls_stream.url",
 		},
 		{
 			name:       "valid credentials",
@@ -230,10 +230,10 @@ func TestStreamVideo(t *testing.T) {
 				).Return(nil)
 				mockCloudflare.On(
 					"GenerateStreamURL", mock.Anything, "externalID",
-				).Return("http://stream.url", nil)
+				).Return("http://hls_stream.url", "http://dash_stream.url", nil)
 			},
 			expectedStatus: http.StatusOK,
-			expectedBody:   "http://stream.url",
+			expectedBody:   "http://hls_stream.url",
 		},
 		{
 			name:       "invalid credentials",
@@ -348,6 +348,7 @@ func TestStreamVideo(t *testing.T) {
 				mockAuthenticator,
 				mockStore,
 				mockLogger,
+				video.DefaultConfig(),
 			)
 
 			router := gin.New()
