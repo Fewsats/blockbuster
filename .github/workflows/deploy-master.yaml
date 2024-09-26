@@ -1,0 +1,61 @@
+name: Deploy Blockbuster main branch
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+
+    steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v4
+
+    - name: Set up Go 1.22
+      uses: actions/setup-go@v5
+      with: 
+        go-version: 1.22       
+
+    - name: Run tests
+      run: go test ./...
+
+    - name: Build app 
+      run: GOOS=linux GOARCH=amd64 go build -o blockbuster-${{ github.ref_name }} ./cmd/server
+
+    - name: SCP to Ocean
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ env.DEPLOY_HOST }}
+        username: ${{ env.DEPLOY_USERNAME }}
+        key: ${{ env.DEPLOY_KEY }}
+        source: "blockbuster-${{ github.ref_name }}"
+        target: "${{ env.DEPLOY_PATH }}/"    
+
+    - name: Deploy and restart on server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ env.DEPLOY_HOST }}
+        username: ${{ env.DEPLOY_USERNAME }}
+        key: ${{ env.DEPLOY_KEY }}
+        script: |
+          # Save the old target of the symlink
+          old_target=$(readlink ${{ env.DEPLOY_PATH }}/blockbuster-current)
+          
+          # Update the symlink to the new build
+          ln -sfn ${{ env.DEPLOY_PATH }}/blockbuster-${{ github.ref_name }} ${{ env.DEPLOY_PATH }}/blockbuster-current
+          
+          # Restart the service
+          sudo systemctl restart blockbuster.service
+          
+          echo "Old target: ${old_target}"
+          # Remove the old build file if it is not the current one
+          if [ "$old_target" != "${{ env.DEPLOY_PATH }}/blockbuster-${{ github.ref_name }}" ]; then
+            rm -f $old_target
+          fi
