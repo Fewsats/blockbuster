@@ -68,7 +68,7 @@ func main() {
 	}
 
 	authenticator := l402.NewAuthenticator(
-		logger, invoiceProvider, store, clock,
+		logger, invoiceProvider, &cfg.L402, store, clock,
 	)
 
 	// Managers
@@ -77,7 +77,7 @@ func main() {
 		store, logger, clock)
 
 	authController := auth.NewController(emailService, logger, store, &cfg.Auth)
-	videoController := video.NewController(videoMgr, authenticator, store, logger)
+	videoController := video.NewController(videoMgr, authenticator, store, logger, &cfg.Video)
 
 	srv, err := server.NewServer(logger, cfg, authController, videoController)
 	if err != nil {

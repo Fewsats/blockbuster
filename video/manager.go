@@ -59,6 +59,8 @@ func (m *Manager) IsVideoReady(ctx context.Context, externalID string) error {
 
 		video, err = m.store.UpdateVideo(ctx, externalID, &CloudflareVideoInfo{
 			ThumbnailURL:      videoInfo.Thumbnail,
+			DashURL:           videoInfo.Playback.Dash,
+			HLSURL:            videoInfo.Playback.HLS,
 			DurationInSeconds: videoInfo.Duration,
 			SizeInBytes:       int64(videoInfo.Size),
 			InputHeight:       int32(videoInfo.Input.Height),
@@ -80,16 +82,14 @@ func (m *Manager) IsVideoReady(ctx context.Context, externalID string) error {
 }
 
 func (m *Manager) GenerateStreamURL(ctx context.Context,
-	externalID string) (string, error) {
+	externalID string) (string, string, error) {
 
-	token, err := m.cf.GenerateStreamURL(ctx, externalID)
+	HLSURL, DashURL, err := m.cf.GenerateStreamURL(ctx, externalID)
 	if err != nil {
 		m.logger.Error("Failed to generate presigned URL", "error", err)
 	}
 
-	presignedURL := fmt.Sprintf("https://videodelivery.net/%s/manifest/video.m3u8?token=%s", externalID, token)
-
-	return presignedURL, nil
+	return HLSURL, DashURL, nil
 }
 
 // CreateChallenge creates a new L402 challenge for downloading a file from our

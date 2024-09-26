@@ -49,7 +49,7 @@ func (s *Service) PublicFileURL(key string) string {
 
 // GenerateVideoViewURL generates a presigned URL for a video in the storage provider.
 func (s *Service) GenerateStreamURL(ctx context.Context,
-	key string) (string, error) {
+	key string) (string, string, error) {
 
 	return s.streams.generateStreamURL(ctx, key)
 }

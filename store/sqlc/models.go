@@ -64,6 +64,8 @@ type Video struct {
 	PriceInCents      int64
 	TotalViews        int64
 	ThumbnailUrl      sql.NullString
+	HlsUrl            sql.NullString
+	DashUrl           sql.NullString
 	DurationInSeconds sql.NullFloat64
 	SizeInBytes       sql.NullInt64
 	InputHeight       sql.NullInt64

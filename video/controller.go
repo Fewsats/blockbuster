@@ -23,17 +23,19 @@ type Controller struct {
 	videos        *Manager
 	authenticator Authenticator
 
+	cfg    *Config
 	store  Store
 	logger *slog.Logger
 }
 
 func NewController(videosMgr *Manager, authenticator Authenticator,
-	store Store, logger *slog.Logger) *Controller {
+	store Store, logger *slog.Logger, cfg *Config) *Controller {
 
 	return &Controller{
 		authenticator: authenticator,
 		videos:        videosMgr,
 
+		cfg:    cfg,
 		store:  store,
 		logger: logger,
 	}
@@ -132,10 +134,9 @@ func (c *Controller) ListUserVideos(gCtx *gin.Context) {
 		return
 	}
 
-	// TODO(pol): this needs to be the L402 URL link
-	// for _, v := range videos {
-	// 	v.CoverURL = c.cf.PublicFileURL(fmt.Sprintf("cover-images/%s", v.ExternalID))
-	// }
+	for _, v := range videos {
+		v.L402URL = fmt.Sprintf("%s/video/stream/%s", c.cfg.L402BaseURL, v.ExternalID)
+	}
 
 	gCtx.JSON(http.StatusOK, gin.H{"videos": videos})
 }
@@ -200,14 +201,14 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 			)
 		}
 
-		presignedURL, err := c.videos.GenerateStreamURL(gCtx, externalID)
+		HLSURL, DashURL, err := c.videos.GenerateStreamURL(gCtx, externalID)
 		if err != nil {
 			c.logger.Error("Failed to generate stream URL", "error", err)
 			gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate stream URL"})
 			return
 		}
 
-		gCtx.JSON(http.StatusOK, gin.H{"url": presignedURL})
+		gCtx.JSON(http.StatusOK, gin.H{"hls_url": HLSURL, "dash_url": DashURL})
 		return
 
 	case !errors.Is(err, l402.ErrMissingAuthorizationHeader) && !errors.Is(err, l402.ErrInvalidPreimage):
@@ -236,7 +237,7 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 	var req StreamVideoRequest
 	if err := gCtx.ShouldBindJSON(&req); err != nil {
 		c.logger.Error("Invalid request", "error", err)
-		gCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		gCtx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
 

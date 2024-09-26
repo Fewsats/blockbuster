@@ -57,7 +57,7 @@ type CloudflareService interface {
 	GenerateVideoUploadURL(ctx context.Context) (string, string, error)
 	UploadPublicFile(ctx context.Context, key, prefix string,
 		reader io.ReadSeeker) (string, error)
-	GenerateStreamURL(ctx context.Context, externalID string) (string, error)
+	GenerateStreamURL(ctx context.Context, externalID string) (string, string, error)
 }
 
 type CreateVideoParams struct {
@@ -77,12 +77,15 @@ type CloudflareVideoInfo struct {
 	InputHeight       int32
 	InputWidth        int32
 	ReadyToStream     bool
+	HLSURL            string
+	DashURL           string
 }
 
 type Video struct {
 	ID         int64  `json:"-"`
 	ExternalID string `json:"external_id"`
 	UserID     int64  `json:"-"`
+	L402URL    string `json:"l402_url"`
 
 	Title        string `json:"title"`
 	Description  string `json:"description"`
@@ -90,7 +93,9 @@ type Video struct {
 	PriceInCents int64  `json:"price_in_cents"`
 	TotalViews   int64  `json:"total_views"`
 
-	ThumbnailURL      string  `json:"thumbnail_url"`
+	ThumbnailURL      string  `json:"-"`
+	HlsURL            string  `json:"-"`
+	DashURL           string  `json:"-"`
 	DurationInSeconds float64 `json:"duration_in_seconds"`
 	SizeInBytes       int64   `json:"size_in_bytes"`
 	InputHeight       int32   `json:"input_height"`

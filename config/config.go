@@ -8,8 +8,10 @@ import (
 	"github.com/fewsats/blockbuster/auth"
 	"github.com/fewsats/blockbuster/cloudflare"
 	"github.com/fewsats/blockbuster/email"
+	"github.com/fewsats/blockbuster/l402"
 	"github.com/fewsats/blockbuster/lightning"
 	"github.com/fewsats/blockbuster/store"
+	"github.com/fewsats/blockbuster/video"
 	"github.com/gin-gonic/gin"
 	"github.com/jessevdk/go-flags"
 )
@@ -41,6 +43,8 @@ type Config struct {
 	Cloudflare cloudflare.Config `group:"cloudflare" namespace:"cloudflare"`
 	Store      store.Config      `group:"store" namespace:"store"`
 	Lightning  lightning.Config  `group:"lightning" namespace:"lightning"`
+	L402       l402.Config       `group:"l402" namespace:"l402"`
+	Video      video.Config      `group:"video" namespace:"video"`
 }
 
 func (c *Config) Validate() error {
@@ -83,6 +87,8 @@ func DefaultConfig() *Config {
 		Store:      *store.DefaultConfig(),
 		Cloudflare: *cloudflare.DefaultConfig(),
 		Lightning:  *lightning.DefaultConfig(),
+		L402:       *l402.DefaultConfig(),
+		Video:      *video.DefaultConfig(),
 	}
 }
 

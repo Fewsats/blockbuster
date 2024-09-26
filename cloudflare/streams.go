@@ -63,17 +63,23 @@ func (s *StreamsService) getStreamVideoInfo(ctx context.Context,
 }
 
 func (s *StreamsService) generateStreamURL(ctx context.Context,
-	externalID string) (string, error) {
+	externalID string) (string, string, error) {
+
+	expiry := time.Now().Add(23 * time.Hour).Unix()
 
 	params := cloudflare.StreamSignedURLParameters{
 		AccountID: s.accountID,
 		VideoID:   externalID,
+		EXP:       int(expiry),
 	}
 
-	url, err := s.api.StreamCreateSignedURL(ctx, params)
+	token, err := s.api.StreamCreateSignedURL(ctx, params)
 	if err != nil {
-		return "", fmt.Errorf("error generating signed URL: %w", err)
+		return "", "", fmt.Errorf("error generating signed URL: %w", err)
 	}
 
-	return url, nil
+	HLSURL := fmt.Sprintf("https://customer-%s.cloudflarestream.com/%s/manifest/video.m3u8", s.accountID, token)
+	DashURL := fmt.Sprintf("https://customer-%s.cloudflarestream.com/%s/manifest/video.mpd", s.accountID, token)
+
+	return HLSURL, DashURL, nil
 }

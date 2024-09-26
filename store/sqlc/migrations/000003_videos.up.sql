@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS videos (
     
     -- data retrieved from cloudflare stream after upload
     thumbnail_url TEXT, -- cloudflare-generated thumbnail
+    hls_url TEXT,
+    dash_url TEXT,
     duration_in_seconds FLOAT,
     size_in_bytes INTEGER,
     input_height INTEGER,

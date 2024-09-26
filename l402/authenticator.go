@@ -41,17 +41,19 @@ type Authenticator struct {
 	clock    utils.Clock
 
 	store  Store
+	cfg    *Config
 	logger *slog.Logger
 }
 
 // NewAuthenticator creates a new L402 authenticator.
 func NewAuthenticator(logger *slog.Logger, provider InvoiceProvider,
-	store Store, clock utils.Clock) *Authenticator {
+	cfg *Config, store Store, clock utils.Clock) *Authenticator {
 
 	return &Authenticator{
 		provider: provider,
 		clock:    clock,
 
+		cfg:    cfg,
 		store:  store,
 		logger: logger,
 	}
@@ -238,7 +240,7 @@ func (l *Authenticator) ValidateSignature(pubKeyHex, signatureHex,
 
 	// TODO(pol) set up domain properly instead of hardcoding
 	// Check if the domain is valid
-	if domain != "ourdomain.com" {
+	if domain != l.cfg.Domain {
 		return fmt.Errorf("invalid domain")
 	}
 

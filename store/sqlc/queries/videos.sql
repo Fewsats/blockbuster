@@ -32,6 +32,8 @@ LIMIT ? OFFSET ?;
 UPDATE videos
 SET 
   thumbnail_url = COALESCE(sqlc.narg(thumbnail_url), thumbnail_url),
+  hls_url = COALESCE(sqlc.narg(hls_url), hls_url),
+  dash_url = COALESCE(sqlc.narg(dash_url), dash_url),
   duration_in_seconds = COALESCE(sqlc.narg(duration_in_seconds), duration_in_seconds),
   size_in_bytes = COALESCE(sqlc.narg(size_in_bytes), size_in_bytes),
   input_height = COALESCE(sqlc.narg(input_height), input_height),

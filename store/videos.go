@@ -71,15 +71,26 @@ func (s *Store) ListUserVideos(ctx context.Context,
 	var result []*video.Video
 	for _, v := range videos {
 		result = append(result, &video.Video{
-			ID:           v.ID,
-			ExternalID:   v.ExternalID,
-			UserID:       v.UserID,
+			ID:         v.ID,
+			ExternalID: v.ExternalID,
+			UserID:     v.UserID,
+
 			Title:        v.Title,
 			Description:  v.Description,
 			CoverURL:     v.CoverUrl,
 			PriceInCents: v.PriceInCents,
 			TotalViews:   v.TotalViews,
-			CreatedAt:    v.CreatedAt,
+
+			ThumbnailURL:      v.ThumbnailUrl.String,
+			HlsURL:            v.HlsUrl.String,
+			DashURL:           v.DashUrl.String,
+			DurationInSeconds: v.DurationInSeconds.Float64,
+			SizeInBytes:       v.SizeInBytes.Int64,
+			InputHeight:       int32(v.InputHeight.Int64),
+			InputWidth:        int32(v.InputWidth.Int64),
+			ReadyToStream:     v.ReadyToStream,
+
+			CreatedAt: v.CreatedAt,
 		})
 	}
 
@@ -111,6 +122,14 @@ func (s *Store) UpdateVideo(ctx context.Context, externalID string,
 			Int64: int64(params.InputWidth),
 			Valid: params.InputWidth != 0,
 		},
+		DashUrl: sql.NullString{
+			String: params.DashURL,
+			Valid:  params.DashURL != "",
+		},
+		HlsUrl: sql.NullString{
+			String: params.HLSURL,
+			Valid:  params.HLSURL != "",
+		},
 		ReadyToStream: params.ReadyToStream,
 	})
 	if err != nil {
@@ -123,6 +142,8 @@ func (s *Store) UpdateVideo(ctx context.Context, externalID string,
 		Title:             v.Title,
 		Description:       v.Description,
 		CoverURL:          v.CoverUrl,
+		HlsURL:            v.HlsUrl.String,
+		DashURL:           v.DashUrl.String,
 		PriceInCents:      v.PriceInCents,
 		TotalViews:        v.TotalViews,
 		ThumbnailURL:      v.ThumbnailUrl.String,

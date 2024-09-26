@@ -19,3 +19,5 @@ venv
 uploads
 .DS_store
 *.txt
+
+cmd/cli
