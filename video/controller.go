@@ -43,9 +43,8 @@ func NewController(videosMgr *Manager, authenticator Authenticator,
 
 func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 	router.POST("/video/upload", c.UploadVideo)
-	// router.GET("/video/:id", c.ServeVideoPage)
 	router.GET("/video/search", nil)
-
+	router.GET("/video/info/:id", c.GetVideoInfo) // Add this line
 }
 
 func (c *Controller) RegisterL402Routes(router *gin.Engine) {
@@ -287,4 +286,50 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 		http.StatusPaymentRequired,
 		gin.H{"error": "Payment Required"},
 	)
+}
+
+// GetVideoInfo returns the L402 stream information for a given video
+func (c *Controller) GetVideoInfo(gCtx *gin.Context) {
+	externalID, err := extractExternalVideoID(gCtx)
+	if err != nil {
+		c.logger.Debug("invalid video ID", "error", err)
+		gCtx.JSON(http.StatusBadRequest, gin.H{"error": "invalid video ID"})
+		return
+	}
+
+	video, err := c.store.GetVideoByExternalID(gCtx, externalID)
+	if err != nil {
+		c.logger.Error("Failed to fetch video info", "error", err)
+		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video info"})
+		return
+	}
+
+	if video == nil {
+		gCtx.JSON(http.StatusNotFound, gin.H{"error": "Video not found"})
+		return
+	}
+
+	info := gin.H{
+		"version":      "1.0",
+		"name":         video.Title,
+		"description":  video.Description,
+		"content_type": "video",
+		"pricing": []gin.H{
+			{
+				"amount":   video.PriceInCents,
+				"currency": "USD",
+			},
+		},
+		"access": gin.H{
+			"endpoint": fmt.Sprintf("%s/%s", c.cfg.L402BaseURL, video.ExternalID),
+			"method":   "POST",
+			"authentication": gin.H{
+				"protocol": "L402",
+				"header":   "Authorization",
+				"format":   "L402 {credentials}:{proof_of_payment}",
+			},
+		},
+	}
+
+	gCtx.JSON(http.StatusOK, info)
 }
