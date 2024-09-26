@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/fewsats/blockbuster/store/sqlc"
@@ -12,6 +13,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/httpfs"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -62,11 +64,26 @@ func runMigrations(logger *slog.Logger, cfg *Config) error {
 		return fmt.Errorf("failed to create migration driver: %w", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://"+cfg.MigrationsPath,
-		"sqlite3", driver)
+	// With the migrate instance open, we'll create a new migration source
+	// using the embedded file system stored in sqlSchemas. The library
+	// we're using can't handle a raw file system interface, so we wrap it
+	// in this intermediate layer.
+	migrateFileServer, err := httpfs.New(
+		http.FS(sqlSchemas), "sqlc/migrations",
+	)
 	if err != nil {
-		return fmt.Errorf("failed to create migration instance: %w", err)
+		return err
+	}
+
+	// Finally, we'll run the migration with our driver above based on the
+	// open DB, and also the migration source stored in the file system
+	// above.
+	m, err := migrate.NewWithInstance(
+		"migrations", migrateFileServer, "sqlite3", driver,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create migration instance: %w",
+			err)
 	}
 
 	start := time.Now().UTC()
