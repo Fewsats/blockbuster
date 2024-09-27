@@ -1,6 +1,23 @@
 export function initVideoUpload() {
     const uploadForm = document.getElementById('uploadForm');
     const uploadEmailInput = document.getElementById('email');
+    const titleInput = document.getElementById('title');
+    const descriptionInput = document.getElementById('description');
+    const titleError = document.getElementById('titleError');
+    const descriptionError = document.getElementById('descriptionError');
+
+    function validateField(input, errorElement, minLength) {
+        if (input.value.length < minLength) {
+            errorElement.classList.remove('hidden');
+            return false;
+        } else {
+            errorElement.classList.add('hidden');
+            return true;
+        }
+    }
+
+    titleInput.addEventListener('input', () => validateField(titleInput, titleError, 10));
+    descriptionInput.addEventListener('input', () => validateField(descriptionInput, descriptionError, 25));
 
     async function populateEmailField() {
         try {
@@ -17,6 +34,14 @@ export function initVideoUpload() {
 
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        const isTitleValid = validateField(titleInput, titleError, 10);
+        const isDescriptionValid = validateField(descriptionInput, descriptionError, 25);
+
+        if (!isTitleValid || !isDescriptionValid) {
+            return;
+        }
+
         const formData = new FormData(uploadForm);
 
         try {
