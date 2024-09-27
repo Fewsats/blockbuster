@@ -76,16 +76,16 @@ export function initVideoList() {
                 const r = await response.json();
                 displayVideos(r.videos);
             } else {
+                displaySignInMessage();
                 throw new Error('Failed to fetch user videos');
             }
         } catch (error) {
             console.error('Error fetching user videos:', error);
-            userVideos.style.display = 'none';
+            displaySignInMessage();
         }
     }
 
     function displayVideos(videos) {
-        console.log('videos', videos);
         if (!Array.isArray(videos) || videos.length === 0) {
             videoList.innerHTML = '<p class="text-gray-500">You haven\'t uploaded any videos yet.</p>';
             return;
@@ -100,7 +100,7 @@ export function initVideoList() {
                         <p class="text-sm text-gray-600">${video.description}</p>
                     </div>
                     <div class="flex justify-end">
-                        <button onclick="copyL402Url('${video.l402_info_url}')" class="bg-indigo-600 text-white py-1 px-2 rounded-md text-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Copy L402 URL</button>
+                        <button onclick="('${video.l402_info_uri}')" class="bg-indigo-600 text-white py-1 px-2 rounded-md text-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Copy L402 URI</button>
                     </div>
                     <div class="text-right">
                         <p class="text-sm font-semibold">$${(video.price_in_cents / 100).toFixed(2)}</p>
@@ -111,17 +111,21 @@ export function initVideoList() {
         `).join('');
     }
 
+    function displaySignInMessage() {
+        videoList.innerHTML = '<p class="text-gray-500">To view the list of your uploaded videos, please sign in first.</p>';
+    }
+
     fetchUserVideos();
 }
 
-function copyL402Url(url) {
+function copyL402Uri(url) {
     navigator.clipboard.writeText(url).then(() => {
-        alert('L402 URL copied to clipboard!');
+        alert('L402 URI copied to clipboard!');
     }).catch(err => {
-        console.error('Failed to copy L402 URL: ', err);
-        alert('Failed to copy L402 URL. Please try again.');
+        console.error('Failed to copy L402 URI: ', err);
+        alert('Failed to copy L402 URI. Please try again.');
     });
 }
 
-// Make copyL402Url globally accessible
-window.copyL402Url = copyL402Url;
+// Make copyL402Uri globally accessible
+window.copyL402Uri = copyL402Uri;
