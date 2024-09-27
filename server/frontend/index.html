@@ -26,12 +26,22 @@
             max-width: 500px;
         }
     </style>
+    <script>
+      window.intercomSettings = {
+        api_base: "https://api-iam.intercom.io",
+        app_id: "ioawiftx"
+      };
+    </script>
+    <script>
+    (function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/YOUR_APP_ID';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})();
+    </script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
-    <nav class="bg-indigo-600 p-4">
+    <nav class="bg-indigo-600 p-4 h-16">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-white text-2xl font-bold">Blockbuster</h1>
+            <a href="/" class="text-white text-2xl font-bold hover:text-indigo-200">Blockbuster</a>
             <div>
+                <a href="/faq" class="text-white hover:text-indigo-200 px-20 font-bold">FAQ</a>
                 <div id="userInfo" class="text-white inline-block"></div>
                 <button id="authButton" class="bg-white text-indigo-600 py-2 px-4 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Sign In / Sign Up</button>
             </div>
@@ -104,6 +114,8 @@
         </div>
     </div>
 
+    
     <script type="module" src="/static/js/main.js"></script>
+    
 </body>
 </html>

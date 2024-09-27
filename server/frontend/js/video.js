@@ -8,7 +8,7 @@ export function initVideoUpload() {
             if (response.ok) {
                 const data = await response.json();
                 uploadEmailInput.value = data.email;
-                uploadEmailInput.readOnly = true;  // Change from disabled to readOnly
+                uploadEmailInput.readOnly = true; 
             }
         } catch (error) {
             console.error('Failed to fetch user email:', error);
@@ -92,16 +92,20 @@ export function initVideoList() {
         }
 
         videoList.innerHTML = videos.map(video => `
-            <div class="flex items-center justify-between border-b border-gray-200 pb-4 cursor-pointer" onclick="window.location.href='/video/${video.external_id}'">
+            <div class="bg-gray-100 rounded-lg shadow-md p-4 flex flex-col space-y-2">
                 <div class="flex items-center space-x-4">
-                    <img src="${video.cover_url}" alt="${video.title}" class="w-24 h-16 object-cover rounded">
-                    <div>
-                        <h4 class="font-semibold">${video.title}</h4>
+                    <img src="${video.cover_url}" alt="${video.title}" class="w-16 h-16 rounded-md object-cover">
+                    <div class="flex-1">
+                        <h4 class="text-lg font-semibold">${video.title}</h4>
+                        <p class="text-sm text-gray-600">${video.description}</p>
                     </div>
-                </div>
-                <div class="text-right">
-                    <p class="text-sm font-semibold">$${(video.price_in_cents / 100).toFixed(2)}</p>
-                    <p class="text-xs text-gray-500">${video.total_views} views</p>
+                    <div class="flex justify-end">
+                        <button onclick="copyL402Url('${video.l402_info_url}')" class="bg-indigo-600 text-white py-1 px-2 rounded-md text-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Copy L402 URL</button>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold">$${(video.price_in_cents / 100).toFixed(2)}</p>
+                        <p class="text-xs text-gray-500">${video.total_views} views</p>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -109,3 +113,15 @@ export function initVideoList() {
 
     fetchUserVideos();
 }
+
+function copyL402Url(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        alert('L402 URL copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy L402 URL: ', err);
+        alert('Failed to copy L402 URL. Please try again.');
+    });
+}
+
+// Make copyL402Url globally accessible
+window.copyL402Url = copyL402Url;

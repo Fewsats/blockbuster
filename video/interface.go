@@ -82,10 +82,11 @@ type CloudflareVideoInfo struct {
 }
 
 type Video struct {
-	ID         int64  `json:"-"`
-	ExternalID string `json:"external_id"`
-	UserID     int64  `json:"-"`
-	L402URL    string `json:"l402_url"`
+	ID          int64  `json:"-"`
+	ExternalID  string `json:"external_id"`
+	UserID      int64  `json:"-"`
+	L402URL     string `json:"l402_url"`
+	L402InfoURL string `json:"l402_info_url"`
 
 	Title        string `json:"title"`
 	Description  string `json:"description"`

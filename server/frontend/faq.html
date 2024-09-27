@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockbuster - FAQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <nav class="bg-indigo-600 p-4 h-18">
+
+
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/" class="text-white text-2xl font-bold hover:text-indigo-200">Blockbuster</a>
+            <div>
+                <a href="/faq" class="text-white hover:text-indigo-200 px-20 font-bold">FAQ</a>
+                <div id="userInfo" class="text-white inline-block"></div>
+                <button id="authButton" class="bg-white text-indigo-600 py-2 px-4 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Sign In / Sign Up</button>
+            </div>
+        </div>
+
+        
+    </nav>
+
+    <main class="flex-grow container mx-auto mt-8 px-4 mb-8">
+        <h2 class="text-3xl font-bold mb-6">Frequently Asked Questions</h2>
+
+        <div class="space-y-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">What is Blockbuster?</h3>
+                <p>Blockbuster is a video sharing platform that allows users to upload, share, and monetize their videos using Lightning Network payments.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">How do I sign up for Blockbuster?</h3>
+                <p>You can sign up by clicking the "Sign In / Sign Up" button and entering your email address. A magic link will be sent to your email for authentication.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">How do I upload a video?</h3>
+                <p>You can upload a video by filling out the upload form on the main page, 
+                    including title, description, price, cover image, and video file. 
+                </p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">How do view my uploaded videos?</h3>
+                <p>Uploaded videos are associated to an email account. In order to see the list 
+                    of your videos you will have to sign up / in using the email magic 
+                </p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">How do I set a price for my video?</h3>
+                <p>When uploading a video, you can set the price in cents in the "Price 
+                    (in cents)" field of the upload form.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">What payment method does Blockbuster use?</h3>
+                <p>Blockbuster uses the L402 protocol & the Lightning Network for payments, 
+                    which allows for fast and low-cost payments.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">How do I watch a video?</h3>
+                <p>To watch a video, you'll need to pay the set price using Lightning Network.
+                     Once paid, you'll receive access to stream the video.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">What is an L402 URL?</h3>
+                <p>An L402 URL is a special link that includes payment information for accessing the video.
+                     It's used to facilitate the Lightning Network payment process.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">Can I edit my uploaded videos?</h3>
+                <p>Currently, video editing is not supported. You can only upload and manage your videos.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-2">How do I contact support?</h3>
+                <p>For support inquiries, please email support@blockbuster.com or use the contact form on our website.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-indigo-600 text-white p-4">
+        <div class="container mx-auto text-center">
+            <p>&copy; 2024 Blockbuster. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -9,7 +9,6 @@ type Config struct {
 	Endpoint         *string `long:"endpoint" description:"Cloudflare R2 endpoint."`
 	AccessKey        string  `long:"access_key" description:"Cloudflare R2 API token."`
 	SecretAccessKey  string  `long:"secret_access_key" description:"Cloudflare R2 API token."`
-	VideoBucketName  string  `long:"video_bucket_name" description:"Cloudflare R2 private video bucket name."`
 	PublicBucketName string  `long:"public_bucket_name" description:"Cloudflare R2 public bucket name."`
 	APIToken         string  `long:"api_token" description:"Cloudflare API token for Streams"`
 	AccountID        string  `long:"account_id" description:"Cloudflare account ID"`

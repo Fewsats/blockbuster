@@ -134,7 +134,10 @@ func (c *Controller) ListUserVideos(gCtx *gin.Context) {
 	}
 
 	for _, v := range videos {
-		v.L402URL = fmt.Sprintf("%s/video/stream/%s", c.cfg.L402BaseURL, v.ExternalID)
+		v.L402URL = fmt.Sprintf("%s/%s", c.cfg.L402BaseURL, v.ExternalID)
+	}
+	for _, v := range videos {
+		v.L402InfoURL = fmt.Sprintf("%s/%s", c.cfg.L402InfoURL, v.ExternalID)
 	}
 
 	gCtx.JSON(http.StatusOK, gin.H{"videos": videos})
@@ -313,6 +316,7 @@ func (c *Controller) GetVideoInfo(gCtx *gin.Context) {
 		"version":      "1.0",
 		"name":         video.Title,
 		"description":  video.Description,
+		"cover_url":    video.CoverURL,
 		"content_type": "video",
 		"pricing": []gin.H{
 			{

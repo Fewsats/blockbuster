@@ -27,10 +27,10 @@ func (s *ResendService) SendMagicLink(to, token string) error {
 	s.logger.Info("Sending magic link", "email", to, "magicLink", magicLink)
 
 	params := &resend.SendEmailRequest{
-		From:    "Your App <noreply@fewsats.com>",
+		From:    "Blockbuster <blockbuster@fewsats.com>",
 		To:      []string{to},
-		Subject: "Your Magic Link",
-		Html:    "<p>Click <a href=\"" + magicLink + "\">here</a> to log in.</p>",
+		Subject: "Blockbuster Sign Up Link",
+		Html:    "<p>Hi!<br><br>To continue signing up to Blockbuster, go here:<br><br><a href=\"" + magicLink + "\">" + magicLink + "</a></p>",
 	}
 
 	_, err := s.client.Emails.Send(params)

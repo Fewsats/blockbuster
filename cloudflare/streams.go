@@ -34,7 +34,7 @@ func (s *StreamsService) generateVideoUploadURL(ctx context.Context) (string, st
 		MaxDurationSeconds: 3600, // 1 hour max duration
 		Expiry:             &expiry,
 		AllowedOrigins:     []string{"*"}, // TODO(pol) allow only our front-end
-		RequireSignedURLs:  false,
+		RequireSignedURLs:  true,
 	}
 
 	// Call the API to create a direct upload URL

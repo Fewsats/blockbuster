@@ -13,7 +13,6 @@ import (
 
 type R2Service struct {
 	r2           *s3.S3
-	videoBucket  string
 	publicBucket string
 }
 
@@ -37,7 +36,6 @@ func NewR2Service(cfg *Config) (*R2Service, error) {
 	return &R2Service{
 		r2: r2,
 
-		videoBucket:  cfg.VideoBucketName,
 		publicBucket: cfg.PublicBucketName,
 	}, nil
 }
@@ -45,7 +43,6 @@ func NewR2Service(cfg *Config) (*R2Service, error) {
 func (r *R2Service) publicFileURL(key string) string {
 	// TODO(pol) this is a dev access to staging bucket hardcoded
 	return fmt.Sprintf("https://pub-3c55410f5c574362bbaa52948499969e.r2.dev/%s", key)
-	// return fmt.Sprintf("https://%s.r2.cloudflarestorage.com/%s", r.publicBucket, key)
 }
 
 func (r *R2Service) uploadPublicFile(ctx context.Context, key string, reader io.ReadSeeker) (string, error) {
