@@ -137,7 +137,7 @@ func (c *Controller) ListUserVideos(gCtx *gin.Context) {
 		v.L402URL = fmt.Sprintf("%s/%s", c.cfg.L402BaseURL, v.ExternalID)
 	}
 	for _, v := range videos {
-		v.L402InfoURL = fmt.Sprintf("%s/%s", c.cfg.L402InfoURL, v.ExternalID)
+		v.L402InfoURI = fmt.Sprintf("%s/%s", c.cfg.L402InfoURI, v.ExternalID)
 	}
 
 	gCtx.JSON(http.StatusOK, gin.H{"videos": videos})

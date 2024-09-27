@@ -1,19 +1,27 @@
 import { Modal } from '/static/js/modal.js';
 
 export function initAuth() {
+    const userInfoContainer = document.getElementById('userInfoContainer');
     const userInfo = document.getElementById('userInfo');
+    const userEmail = document.getElementById('userEmail');
+    const userEmailSpan = userEmail.querySelector('span');
+    const userInitials = userEmail.querySelector('div');
+    const userDropdown = document.getElementById('userDropdown');
     const authButton = document.getElementById('authButton');
+    const signOutButton = document.getElementById('signOutButton');
     const authModal = new Modal('authModal');
     const authForm = document.getElementById('authForm');
     const messageElement = document.getElementById('message');
 
     function updateUserInfo(email) {
         if (email) {
-            userInfo.textContent = email;
-            authButton.textContent = 'Sign Out';
+            userEmailSpan.textContent = email;
+            userInitials.textContent = email[0].toUpperCase();
+            authButton.style.display = 'none';
+            userInfo.style.display = 'block';
         } else {
-            userInfo.textContent = '';
-            authButton.textContent = 'Sign In / Sign Up';
+            authButton.style.display = 'block';
+            userInfo.style.display = 'none';
         }
     }
 
@@ -32,20 +40,31 @@ export function initAuth() {
         }
     }
 
-    authButton.addEventListener('click', async () => {
-        if (authButton.textContent === 'Sign Out') {
-            try {
-                const response = await fetch('/auth/logout');
-                if (response.ok) {
-                    updateUserInfo(null);
-                } else {
-                    throw new Error('Logout failed');
-                }
-            } catch (error) {
-                console.error('Logout failed:', error);
+    userEmail.addEventListener('click', () => {
+        userDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!userInfoContainer.contains(event.target)) {
+            userDropdown.classList.add('hidden');
+        }
+    });
+
+    authButton.addEventListener('click', () => {
+        authModal.show();
+    });
+
+    signOutButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch('/auth/logout');
+            if (response.ok) {
+                updateUserInfo(null);
+            } else {
+                throw new Error('Logout failed');
             }
-        } else {
-            authModal.show();
+        } catch (error) {
+            console.error('Logout failed:', error);
         }
     });
 

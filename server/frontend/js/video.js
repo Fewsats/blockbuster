@@ -100,7 +100,7 @@ export function initVideoList() {
                         <p class="text-sm text-gray-600">${video.description}</p>
                     </div>
                     <div class="flex justify-end">
-                        <button onclick="('${video.l402_info_uri}')" class="bg-indigo-600 text-white py-1 px-2 rounded-md text-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Copy L402 URI</button>
+                        <button onclick="copyL402Uri('${video.l402_info_uri}')" class="bg-indigo-600 text-white py-1 px-2 rounded-md text-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Copy L402 URI</button>
                     </div>
                     <div class="text-right">
                         <p class="text-sm font-semibold">$${(video.price_in_cents / 100).toFixed(2)}</p>
