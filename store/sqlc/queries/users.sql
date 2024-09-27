@@ -4,7 +4,7 @@ VALUES (?, false, ?)
 RETURNING id;
 
 -- name: GetUserByID :one
-SELECT id, email, verified FROM users
+SELECT * FROM users
 WHERE id = ? LIMIT 1;
 
 -- name: GetUserIDByEmail :one
@@ -14,5 +14,10 @@ WHERE email = ? LIMIT 1;
 -- name: UpdateUserVerified :exec
 UPDATE users
 SET verified = ?
-WHERE email = ?
+WHERE email = ?;
+
+-- name: UpdateUserLightningAddress :exec
+UPDATE users
+SET lightning_address = ?
+WHERE id = ?;
 

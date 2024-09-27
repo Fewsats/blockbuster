@@ -29,8 +29,8 @@ export function initAuth() {
         try {
             const response = await fetch('/me');
             if (response.ok) {
-                const data = await response.json();
-                updateUserInfo(data.email);
+                const { user } = await response.json();
+                updateUserInfo(user.email);
             } else {
                 updateUserInfo(null);
             }

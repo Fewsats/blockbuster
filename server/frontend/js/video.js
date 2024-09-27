@@ -6,8 +6,8 @@ export function initVideoUpload() {
         try {
             const response = await fetch('/me');
             if (response.ok) {
-                const data = await response.json();
-                uploadEmailInput.value = data.email;
+                const { user } = await response.json();
+                uploadEmailInput.value = user.email;
                 uploadEmailInput.readOnly = true; 
             }
         } catch (error) {

@@ -48,10 +48,11 @@ type Token struct {
 }
 
 type User struct {
-	ID        int64
-	Email     string
-	Verified  bool
-	CreatedAt time.Time
+	ID               int64
+	Email            string
+	LightningAddress sql.NullString
+	Verified         bool
+	CreatedAt        time.Time
 }
 
 type Video struct {

@@ -21,9 +21,10 @@ type Controller struct {
 }
 
 type User struct {
-	ID       int64
-	Email    string
-	Verified bool
+	ID               int64  `json:"id"`
+	Email            string `json:"email"`
+	LightningAddress string `json:"lightning_address"`
+	Verified         bool   `json:"verified"`
 }
 
 type LoginRequest struct {
@@ -52,6 +53,7 @@ func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 // RegisterProtectedRoutes registers the protected authentication routes.
 func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
 	router.GET("/me", c.MeHandler)
+	router.POST("/auth/profile", c.UpdateProfileHandler)
 }
 
 // RegisterAuthMiddleware registers the authentication middleware.
@@ -174,7 +176,8 @@ func (c *Controller) MeHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"email": user.Email})
+	// TODO(pol) return also the lightning address
+	ctx.JSON(http.StatusOK, gin.H{"user": user})
 }
 
 func generateRandomToken(length int) (string, error) {
@@ -193,10 +196,44 @@ func (c *Controller) LogoutHandler(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session token"})
 		return
 	}
-	session.Delete("user")
+	session.Delete("user_id")
+
 	if err := session.Save(); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+}
+
+func (c *Controller) UpdateProfileHandler(ctx *gin.Context) {
+	session := sessions.Default(ctx)
+	userID := session.Get("user_id")
+	if userID == nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
+
+	userIDInt, ok := userID.(int64)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req struct {
+		LightningAddress string `json:"lightningAddress"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	err := c.store.UpdateUserLightningAddress(ctx, userIDInt, req.LightningAddress)
+	if err != nil {
+		c.logger.Error("Failed to update user lightning address", "error", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 }

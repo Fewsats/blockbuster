@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -29,20 +30,20 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, 
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, verified FROM users
+SELECT id, email, lightning_address, verified, created_at FROM users
 WHERE id = ? LIMIT 1
 `
 
-type GetUserByIDRow struct {
-	ID       int64
-	Email    string
-	Verified bool
-}
-
-func (q *Queries) GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
-	var i GetUserByIDRow
-	err := row.Scan(&i.ID, &i.Email, &i.Verified)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.LightningAddress,
+		&i.Verified,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
@@ -56,6 +57,22 @@ func (q *Queries) GetUserIDByEmail(ctx context.Context, email string) (int64, er
 	var id int64
 	err := row.Scan(&id)
 	return id, err
+}
+
+const updateUserLightningAddress = `-- name: UpdateUserLightningAddress :exec
+UPDATE users
+SET lightning_address = ?
+WHERE id = ?
+`
+
+type UpdateUserLightningAddressParams struct {
+	LightningAddress sql.NullString
+	ID               int64
+}
+
+func (q *Queries) UpdateUserLightningAddress(ctx context.Context, arg UpdateUserLightningAddressParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserLightningAddress, arg.LightningAddress, arg.ID)
+	return err
 }
 
 const updateUserVerified = `-- name: UpdateUserVerified :exec

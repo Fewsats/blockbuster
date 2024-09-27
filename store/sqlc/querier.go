@@ -20,7 +20,7 @@ type Querier interface {
 	GetPurchaseByPaymentHash(ctx context.Context, paymentHash string) (Purchase, error)
 	GetRootKeyByTokenID(ctx context.Context, tokenID []byte) ([]byte, error)
 	GetToken(ctx context.Context, token string) (Token, error)
-	GetUserByID(ctx context.Context, id int64) (GetUserByIDRow, error)
+	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserIDByEmail(ctx context.Context, email string) (int64, error)
 	GetVideoByExternalID(ctx context.Context, externalID string) (Video, error)
 	IncrementVideoViews(ctx context.Context, externalID string) error
@@ -29,6 +29,7 @@ type Querier interface {
 	InsertPurchase(ctx context.Context, arg InsertPurchaseParams) (int64, error)
 	ListUserVideos(ctx context.Context, userID int64) ([]Video, error)
 	SearchVideos(ctx context.Context, arg SearchVideosParams) ([]Video, error)
+	UpdateUserLightningAddress(ctx context.Context, arg UpdateUserLightningAddressParams) error
 	UpdateUserVerified(ctx context.Context, arg UpdateUserVerifiedParams) error
 	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
 	VerifyToken(ctx context.Context, arg VerifyTokenParams) (string, error)

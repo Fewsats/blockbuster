@@ -77,6 +77,9 @@ func (s *Server) setupRoutes() {
 	s.router.GET("/faq", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "faq.html", nil)
 	})
+	s.router.GET("/profile", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "profile.html", nil)
+	})
 
 	s.auth.RegisterPublicRoutes(s.router)
 	s.video.RegisterPublicRoutes(s.router)

@@ -70,8 +70,21 @@ func (s *Store) GetUserByID(ctx context.Context, id int64) (auth.User, error) {
 	}
 
 	return auth.User{
-		ID:       user.ID,
-		Email:    user.Email,
-		Verified: user.Verified,
+		ID:               user.ID,
+		Email:            user.Email,
+		Verified:         user.Verified,
+		LightningAddress: user.LightningAddress.String,
 	}, nil
+}
+
+func (s *Store) UpdateUserLightningAddress(ctx context.Context,
+	id int64, lightningAddress string) error {
+
+	return s.queries.UpdateUserLightningAddress(ctx, sqlc.UpdateUserLightningAddressParams{
+		ID: id,
+		LightningAddress: sql.NullString{
+			String: lightningAddress,
+			Valid:  lightningAddress != "",
+		},
+	})
 }

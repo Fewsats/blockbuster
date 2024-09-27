@@ -22,6 +22,7 @@ type Authenticator interface {
 
 type Store interface {
 	GetOrCreateUserByEmail(ctx context.Context, email string) (int64, error)
+
 	CreateVideo(ctx context.Context, params CreateVideoParams) (*Video, error)
 	UpdateVideo(ctx context.Context, externalID string,
 		params *CloudflareVideoInfo) (*Video, error)
@@ -53,7 +54,8 @@ type OrdersMgr interface {
 }
 
 type CloudflareService interface {
-	GetStreamVideoInfo(ctx context.Context, externalID string) (*cloudflare.StreamVideo, error)
+	GetStreamVideoInfo(ctx context.Context,
+		externalID string) (*cloudflare.StreamVideo, error)
 	GenerateVideoUploadURL(ctx context.Context) (string, string, error)
 	UploadPublicFile(ctx context.Context, key, prefix string,
 		reader io.ReadSeeker) (string, error)

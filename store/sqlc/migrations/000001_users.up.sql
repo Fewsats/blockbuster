@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
+    lightning_address TEXT,
+    
     verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at DATETIME NOT NULL
 );
