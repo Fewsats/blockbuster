@@ -49,6 +49,7 @@ func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 
 func (c *Controller) RegisterL402Routes(router *gin.Engine) {
 	router.POST("/video/stream/:id", c.StreamVideo)
+	router.GET("/video/stream/:id", c.HandleGetStreamVideo)
 }
 
 func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
@@ -336,4 +337,9 @@ func (c *Controller) GetVideoInfo(gCtx *gin.Context) {
 	}
 
 	gCtx.JSON(http.StatusOK, info)
+}
+
+// Add this new method to the Controller
+func (c *Controller) HandleGetStreamVideo(gCtx *gin.Context) {
+	gCtx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Method Not Allowed"})
 }

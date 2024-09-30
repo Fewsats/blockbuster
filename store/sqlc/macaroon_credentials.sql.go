@@ -9,35 +9,43 @@ import (
 	"context"
 )
 
-const getRootKeyByTokenID = `-- name: GetRootKeyByTokenID :one
+const getRootKeyByIdentifier = `-- name: GetRootKeyByIdentifier :one
 SELECT root_key
 FROM macaroon_credentials
-WHERE token_id = ?
+WHERE identifier = ?
 `
 
-func (q *Queries) GetRootKeyByTokenID(ctx context.Context, tokenID []byte) ([]byte, error) {
-	row := q.db.QueryRowContext(ctx, getRootKeyByTokenID, tokenID)
-	var root_key []byte
+func (q *Queries) GetRootKeyByIdentifier(ctx context.Context, identifier string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getRootKeyByIdentifier, identifier)
+	var root_key string
 	err := row.Scan(&root_key)
 	return root_key, err
 }
 
 const insertMacaroonToken = `-- name: InsertMacaroonToken :one
 INSERT INTO macaroon_credentials (
-    token_id, root_key, created_at
+    identifier, root_key, created_at, encoded_base_macaroon, disabled
 ) VALUES (
-    ?, ?, ?
+    ?, ?, ?, ?, ?
 ) RETURNING id
 `
 
 type InsertMacaroonTokenParams struct {
-	TokenID   []byte
-	RootKey   []byte
-	CreatedAt interface{}
+	Identifier          string
+	RootKey             string
+	CreatedAt           interface{}
+	EncodedBaseMacaroon string
+	Disabled            bool
 }
 
 func (q *Queries) InsertMacaroonToken(ctx context.Context, arg InsertMacaroonTokenParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, insertMacaroonToken, arg.TokenID, arg.RootKey, arg.CreatedAt)
+	row := q.db.QueryRowContext(ctx, insertMacaroonToken,
+		arg.Identifier,
+		arg.RootKey,
+		arg.CreatedAt,
+		arg.EncodedBaseMacaroon,
+		arg.Disabled,
+	)
 	var id int64
 	err := row.Scan(&id)
 	return id, err

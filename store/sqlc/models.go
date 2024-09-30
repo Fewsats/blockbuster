@@ -10,10 +10,12 @@ import (
 )
 
 type MacaroonCredential struct {
-	ID        int64
-	TokenID   []byte
-	RootKey   []byte
-	CreatedAt interface{}
+	ID                  int64
+	Identifier          string
+	RootKey             string
+	CreatedAt           interface{}
+	EncodedBaseMacaroon string
+	Disabled            bool
 }
 
 type Offer struct {

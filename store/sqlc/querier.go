@@ -18,7 +18,7 @@ type Querier interface {
 	DeleteVideo(ctx context.Context, externalID string) error
 	GetOfferByPaymentHash(ctx context.Context, paymentHash string) (Offer, error)
 	GetPurchaseByPaymentHash(ctx context.Context, paymentHash string) (Purchase, error)
-	GetRootKeyByTokenID(ctx context.Context, tokenID []byte) ([]byte, error)
+	GetRootKeyByIdentifier(ctx context.Context, identifier string) (string, error)
 	GetToken(ctx context.Context, token string) (Token, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserIDByEmail(ctx context.Context, email string) (int64, error)

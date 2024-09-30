@@ -37,17 +37,17 @@ type MockStore struct {
 }
 
 func (m *MockStore) CreateRootKey(ctx context.Context,
-	tokenID [32]byte, rootKey [32]byte) error {
+	identifier string, rootKey string, encodedBaseMacaroon string) error {
 
-	args := m.Called(ctx, tokenID, rootKey)
+	args := m.Called(ctx, identifier, rootKey, encodedBaseMacaroon)
 	return args.Error(0)
 }
 
 func (m *MockStore) GetRootKey(ctx context.Context,
-	tokenID [32]byte) ([32]byte, error) {
+	identifier string) (string, error) {
 
-	args := m.Called(ctx, tokenID)
-	return args.Get(0).([32]byte), args.Error(1)
+	args := m.Called(ctx, identifier)
+	return args.Get(0).(string), args.Error(1)
 }
 
 func (m *MockStore) StoreInvoice(ctx context.Context,
@@ -94,7 +94,7 @@ func TestNewChallenge(t *testing.T) {
 			name:            "Happy Path",
 			productName:     "Test Product",
 			priceInUSDCents: 1000,
-			pubKeyHex:       "0101010101010101010101010101010101010101010101010101010101010101",
+			pubKeyHex:       "384b61fb5cc7fae5cb849ebd69a66c4f8535fa95cba90346a0204c034301bb3d",
 			caveats:         map[string]string{"key": "value"},
 			setupMocks: func() {
 				expectedInvoice := &lightning.LNInvoice{
@@ -110,13 +110,11 @@ func TestNewChallenge(t *testing.T) {
 						copy(b, bytes.Repeat([]byte{0x01}, len(b)))
 					}).Return(32, nil)
 
-				expectedTokenID := [32]byte{}
-				expectedRootKey := [32]byte{}
-				for i := range expectedTokenID {
-					expectedTokenID[i] = 0x01
-					expectedRootKey[i] = 0x01
-				}
-				mockStore.On("CreateRootKey", ctx, expectedTokenID, expectedRootKey).Return(nil)
+				expectedIdentifier := "00000123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef384b61fb5cc7fae5cb849ebd69a66c4f8535fa95cba90346a0204c034301bb3d"
+				expectedRootKey := "0101010101010101010101010101010101010101010101010101010101010101"
+				encodedMacaroon := "AgELZmV3c2F0cy5jb20CQgAAASNFZ4mrze8BI0VniavN7wEjRWeJq83vASNFZ4mrze84S2H7XMf65cuEnr1ppmxPhTX6lcupA0agIEwDQwG7PQACCWtleT12YWx1ZQAABiA7uf9wmjBf0rGDbQPTEGfSwV3Em41xeAR6HdpZRqZrFg"
+
+				mockStore.On("CreateRootKey", ctx, expectedIdentifier, expectedRootKey, encodedMacaroon).Return(nil)
 
 			},
 		},

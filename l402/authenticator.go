@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -104,7 +105,7 @@ func (l *Authenticator) NewChallenge(ctx context.Context, productName string,
 	copy(pubKey[:], pubKeyBytes)
 
 	// Create an invoice.
-	lnInvocie, err := l.provider.CreateInvoice(
+	lnInvoice, err := l.provider.CreateInvoice(
 		ctx, priceInUSDCents, "USD", productName,
 	)
 	if err != nil {
@@ -118,38 +119,47 @@ func (l *Authenticator) NewChallenge(ctx context.Context, productName string,
 		return nil, fmt.Errorf("unable to generate random root key: %v", err)
 	}
 
-	// Store token ID and root key.
-	err = l.store.CreateRootKey(ctx, pubKey, randomRootKey)
-	if err != nil {
-		return nil, fmt.Errorf("unable to store root key: %v", err)
-	}
-
-	paymentHash, err := hex.DecodeString(lnInvocie.PaymentHash)
+	paymentHash, err := hex.DecodeString(lnInvoice.PaymentHash)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode payment hash: %v", err)
 	}
 
-	var buf bytes.Buffer
-	if err := binary.Write(&buf, byteOrder, uint16(0)); err != nil {
+	var identifier bytes.Buffer
+	if err := binary.Write(&identifier, byteOrder, uint16(0)); err != nil {
 		return nil, fmt.Errorf("unable to write version: %v", err)
 	}
 
-	if _, err := buf.Write(paymentHash[:]); err != nil {
+	err = binary.Write(&identifier, byteOrder, paymentHash[:])
+	if err != nil {
 		return nil, fmt.Errorf("unable to write payment hash: %v", err)
 	}
 
-	if _, err := buf.Write(pubKey[:]); err != nil {
+	err = binary.Write(&identifier, byteOrder, pubKey[:])
+	if err != nil {
 		return nil, fmt.Errorf("unable to write token ID: %v", err)
 	}
 
 	location := "fewsats.com"
-	mac, err := l.mintMacaroon(location, buf.Bytes(), randomRootKey[:],
+	mac, err := l.mintMacaroon(location, identifier.Bytes(), randomRootKey[:],
 		caveats)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create macaroon: %v", err)
 	}
 
-	return NewChallenge(mac, lnInvocie), nil
+	macBytes, err := mac.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal macaroon: %v", err)
+	}
+
+	// Store identifier, root key and macaroon.
+	err = l.store.CreateRootKey(ctx, hex.EncodeToString(identifier.Bytes()),
+		hex.EncodeToString(randomRootKey[:]),
+		base64.RawURLEncoding.EncodeToString(macBytes))
+	if err != nil {
+		return nil, fmt.Errorf("unable to store root key: %v", err)
+	}
+
+	return NewChallenge(mac, lnInvoice), nil
 }
 
 // ValidateL402Credentials validates the L402 credentials in the Authorization
@@ -217,7 +227,7 @@ func (l *Authenticator) ValidateCredentials(ctx context.Context,
 	}
 
 	// Retrieve the root key for the token ID.
-	rootKey, err := l.store.GetRootKey(ctx, creds.TokenID)
+	rootKey, err := l.store.GetRootKey(ctx, creds.Identifier)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve root key: %v", err)
 	}

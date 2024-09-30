@@ -8,15 +8,17 @@ import (
 )
 
 // CreateRootKey stores the root key for a given token ID.
-func (s *Store) CreateRootKey(ctx context.Context, tokenID [32]byte,
-	rootKey [32]byte) error {
+func (s *Store) CreateRootKey(ctx context.Context, identifier string,
+	rootKey string, encodedBaseMacaroon string) error {
 
 	timestamp := s.clock.Now()
 	txBody := func(queries *sqlc.Queries) error {
 		params := sqlc.InsertMacaroonTokenParams{
-			TokenID:   tokenID[:],
-			RootKey:   rootKey[:],
-			CreatedAt: timestamp,
+			Identifier:          identifier,
+			RootKey:             rootKey,
+			CreatedAt:           timestamp,
+			EncodedBaseMacaroon: encodedBaseMacaroon,
+			Disabled:            false,
 		}
 
 		_, err := queries.InsertMacaroonToken(ctx, params)
@@ -35,23 +37,21 @@ func (s *Store) CreateRootKey(ctx context.Context, tokenID [32]byte,
 }
 
 // GetRootKey retrieves the root key for a given token ID.
-func (s *Store) GetRootKey(ctx context.Context, tokenID [32]byte) ([32]byte,
+func (s *Store) GetRootKey(ctx context.Context, identifier string) (string,
 	error) {
 
-	var rootKey [32]byte
+	var rootKey string
 	txBody := func(queries *sqlc.Queries) error {
-		row, err := queries.GetRootKeyByTokenID(ctx, tokenID[:])
+		row, err := queries.GetRootKeyByIdentifier(ctx, identifier)
 		if err != nil {
 			return err
 		}
-
-		copy(rootKey[:], row)
-
+		rootKey = row
 		return nil
 	}
 
 	if err := s.ExecTx(ctx, txBody); err != nil {
-		return rootKey, fmt.Errorf("failed to get root key metadata: %v", err)
+		return "", fmt.Errorf("failed to get root key: %v", err)
 	}
 
 	return rootKey, nil

@@ -16,8 +16,9 @@ type InvoiceProvider interface {
 
 type Store interface {
 	// CreateRootKey stores the root key for a given token ID.
-	CreateRootKey(ctx context.Context, tokenID [32]byte, rootKey [32]byte) error
+	CreateRootKey(ctx context.Context, identifier string, rootKey string,
+		encodedBaseMacaroon string) error
 
 	// GetRootKey retrieves the root key for a given token ID.
-	GetRootKey(ctx context.Context, tokenID [32]byte) ([32]byte, error)
+	GetRootKey(ctx context.Context, identifier string) (string, error)
 }

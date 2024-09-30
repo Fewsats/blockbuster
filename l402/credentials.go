@@ -26,8 +26,8 @@ type Credentials struct {
 	// PaymentHash is the payment hash of the macaroon.
 	PaymentHash [32]byte
 
-	// tokenID is the tokneID of the macaroon.
-	TokenID [32]byte
+	// Identifier is the identifier of the macaroon.
+	Identifier string
 }
 
 // DecodeMacIdentifier decodes the macaroon identifier into its version,
@@ -48,12 +48,12 @@ func DecodeMacIdentifier(id []byte) (uint16, [32]byte, [32]byte, error) {
 		if _, err := r.Read(paymentHash[:]); err != nil {
 			return 0, [32]byte{}, [32]byte{}, err
 		}
-		var tokenID [32]byte
-		if _, err := r.Read(tokenID[:]); err != nil {
+		var identifier [32]byte
+		if _, err := r.Read(identifier[:]); err != nil {
 			return 0, [32]byte{}, [32]byte{}, err
 		}
 
-		return version, paymentHash, tokenID, nil
+		return version, paymentHash, identifier, nil
 	}
 
 	return 0, [32]byte{}, [32]byte{}, fmt.Errorf("unkown version: %d", version)
@@ -75,7 +75,7 @@ func DecodeL402Credentials(macBase64, preimageHex string) (*Credentials,
 		return nil, fmt.Errorf("invalid macaroon: %s", macBase64)
 	}
 
-	version, paymentHash, tokenID, err := DecodeMacIdentifier(mac.Id())
+	version, paymentHash, identifier, err := DecodeMacIdentifier(mac.Id())
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode macaroon identifier: %v", err)
 	}
@@ -97,7 +97,7 @@ func DecodeL402Credentials(macBase64, preimageHex string) (*Credentials,
 		Preimage:    preimage,
 		Version:     version,
 		PaymentHash: paymentHash,
-		TokenID:     tokenID,
+		Identifier:  hex.EncodeToString(identifier[:]),
 	}, nil
 }
 
@@ -115,8 +115,13 @@ func (c *Credentials) ValidatePreimage() error {
 
 // VerifyMacaroon verifies the macaroon with the given root key and checks
 // that all the caveats are valid.
-func (c *Credentials) VerifyMacaroon(rootKey [32]byte) error {
-	_, err := c.Macaroon.VerifySignature(rootKey[:], nil)
+func (c *Credentials) VerifyMacaroon(rootKey string) error {
+	rootKeyBytes, err := hex.DecodeString(rootKey)
+	if err != nil {
+		return fmt.Errorf("unable to decode root key: %v", err)
+	}
+
+	_, err = c.Macaroon.VerifySignature(rootKeyBytes, nil)
 	if err != nil {
 		return fmt.Errorf("unable to verify macaroon: %v", err)
 	}

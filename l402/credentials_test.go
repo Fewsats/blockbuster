@@ -60,7 +60,7 @@ func TestDecodeL402Credentials(t *testing.T) {
 
 		expectedVersion        uint16
 		expectedPaymentHashHex string
-		expectedTokenIDHex     string
+		expectedIdentifierHex  string
 
 		expectErr string
 	}{
@@ -72,7 +72,7 @@ func TestDecodeL402Credentials(t *testing.T) {
 
 			expectedVersion:        0,
 			expectedPaymentHashHex: "c7e40f4dc0e3de38503762390927836d6f82785c425906567a7e01cf50524424",
-			expectedTokenIDHex:     "1b65e5c2668a53e8a3b2cf7bbe4bba87947742fb8c879940017e4486d929f9f3",
+			expectedIdentifierHex:  "1b65e5c2668a53e8a3b2cf7bbe4bba87947742fb8c879940017e4486d929f9f3",
 		},
 		// Credentials from Fewsats
 		{
@@ -82,7 +82,7 @@ func TestDecodeL402Credentials(t *testing.T) {
 
 			expectedVersion:        0,
 			expectedPaymentHashHex: "35cf3da4dfdefa01a3859659d447eb2eeb070c9c6610f4faa52b1510a4c5f597",
-			expectedTokenIDHex:     "7133548b39c094b83120052b10685d7cc5c699794835b9c9e85afd533770a85f",
+			expectedIdentifierHex:  "7133548b39c094b83120052b10685d7cc5c699794835b9c9e85afd533770a85f",
 		},
 		// Credentials from LSAT Playground
 		{
@@ -116,8 +116,7 @@ func TestDecodeL402Credentials(t *testing.T) {
 			require.Equal(t, tc.expectedVersion, creds.Version)
 			require.Equal(t, tc.expectedPaymentHashHex,
 				hex.EncodeToString(creds.PaymentHash[:]))
-			require.Equal(t, tc.expectedTokenIDHex,
-				hex.EncodeToString(creds.TokenID[:]))
+			require.Equal(t, tc.expectedIdentifierHex, creds.Identifier)
 		})
 	}
 

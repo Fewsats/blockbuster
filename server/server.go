@@ -15,6 +15,7 @@ import (
 	"github.com/fewsats/blockbuster/auth"
 	"github.com/fewsats/blockbuster/config"
 	"github.com/fewsats/blockbuster/video"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 )
@@ -34,6 +35,14 @@ type Server struct {
 func NewServer(logger *slog.Logger, cfg *config.Config, authCtrl *auth.Controller, videoCtrl *video.Controller) (*Server, error) {
 	router := gin.New()
 	router.Use(gin.Recovery())
+
+	// Set up CORS middleware
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	corsConfig.AllowCredentials = true
+	router.Use(cors.New(corsConfig))
 
 	// Set up session middleware
 	store := cookie.NewStore([]byte(cfg.Auth.SessionSecret))
@@ -87,7 +96,7 @@ func (s *Server) setupRoutes() {
 	s.video.RegisterL402Routes(s.router)
 
 	// Routes protected by auth middleware
-	s.auth.RegisterAuthMiddleware(s.router)
+	// s.auth.RegisterAuthMiddleware(s.router)
 	s.auth.RegisterProtectedRoutes(s.router)
 	s.video.RegisterProtectedRoutes(s.router)
 
