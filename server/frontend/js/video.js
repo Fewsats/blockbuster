@@ -5,6 +5,8 @@ export function initVideoUpload() {
     const descriptionInput = document.getElementById('description');
     const titleError = document.getElementById('titleError');
     const descriptionError = document.getElementById('descriptionError');
+    const uploadButton = document.getElementById('uploadButton');
+    const uploadSpinner = document.getElementById('uploadSpinner');
 
     function validateField(input, errorElement, minLength) {
         if (input.value.length < minLength) {
@@ -32,6 +34,12 @@ export function initVideoUpload() {
         }
     }
 
+    function setUploadingState(isUploading) {
+        uploadButton.disabled = isUploading;
+        uploadButton.querySelector('span').textContent = isUploading ? 'Uploading...' : 'Upload Video';
+        uploadSpinner.classList.toggle('hidden', !isUploading);
+    }
+
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -41,6 +49,8 @@ export function initVideoUpload() {
         if (!isTitleValid || !isDescriptionValid) {
             return;
         }
+
+        setUploadingState(true);
 
         const formData = new FormData(uploadForm);
 
@@ -84,6 +94,8 @@ export function initVideoUpload() {
             }
         } catch (error) {
             alert(error.message);
+        } finally {
+            setUploadingState(false);
         }
     });
 
