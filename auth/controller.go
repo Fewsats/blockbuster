@@ -131,7 +131,12 @@ func (c *Controller) VerifyTokenHandler(ctx *gin.Context) {
 	// Generate a new session
 	session := sessions.Default(ctx)
 	session.Set("user_id", userID)
-	if err := session.Save(); err != nil {
+	session.Options(sessions.Options{
+		Path:   "/",
+		MaxAge: 365 * 24 * 60 * 60, // 1 year in secs
+	})
+	err = session.Save()
+	if err != nil {
 		c.logger.Error("Failed to save session", "error", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
 		return
