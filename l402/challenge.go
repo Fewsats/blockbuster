@@ -46,7 +46,7 @@ func (c *Challenge) EncodedCredentials() (string, error) {
 		return "", fmt.Errorf("unable to marshal macaroon: %v", err)
 	}
 
-	return base64.StdEncoding.EncodeToString(mac), nil
+	return base64.RawURLEncoding.EncodeToString(mac), nil
 }
 
 // EncodedPaymentRequest returns the encoded payment request for the L402

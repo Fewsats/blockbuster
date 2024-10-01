@@ -78,8 +78,9 @@ func (s *StreamsService) generateStreamURL(ctx context.Context,
 		return "", "", fmt.Errorf("error generating signed URL: %w", err)
 	}
 
-	HLSURL := fmt.Sprintf("https://customer-%s.cloudflarestream.com/%s/manifest/video.m3u8", s.accountID, token)
-	DashURL := fmt.Sprintf("https://customer-%s.cloudflarestream.com/%s/manifest/video.mpd", s.accountID, token)
+	customerSubdomain := "customer-2kawuipn4kja54d5.cloudflarestream.com"
+	HLSURL := fmt.Sprintf("https://%s/%s/manifest/video.m3u8", customerSubdomain, token)
+	DashURL := fmt.Sprintf("https://%s/%s/manifest/video.mpd", customerSubdomain, token)
 
 	return HLSURL, DashURL, nil
 }

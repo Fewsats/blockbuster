@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+type InvoiceStatus struct {
+	PaymentHash string
+	Settled     bool
+	Preimage    sql.NullString
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type MacaroonCredential struct {
 	ID                  int64
 	Identifier          string

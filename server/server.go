@@ -37,10 +37,12 @@ func NewServer(logger *slog.Logger, cfg *config.Config, authCtrl *auth.Controlle
 	router.Use(gin.Recovery())
 
 	// Set up CORS middleware
+	// TODO(pol) is it ok to allow all origins?
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"}
+	corsConfig.ExposeHeaders = []string{"Content-Length", "Content-Disposition", "Content-Type", "X-Requested-With", "Set-Cookie", "Www-authenticate"}
 	corsConfig.AllowCredentials = true
 	router.Use(cors.New(corsConfig))
 
@@ -96,7 +98,7 @@ func (s *Server) setupRoutes() {
 	s.video.RegisterL402Routes(s.router)
 
 	// Routes protected by auth middleware
-	// s.auth.RegisterAuthMiddleware(s.router)
+	s.auth.RegisterAuthMiddleware(s.router)
 	s.auth.RegisterProtectedRoutes(s.router)
 	s.video.RegisterProtectedRoutes(s.router)
 

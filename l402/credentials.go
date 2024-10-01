@@ -41,19 +41,19 @@ func DecodeMacIdentifier(id []byte) (uint16, [32]byte, [32]byte, error) {
 	}
 
 	switch version {
-	// A version 0 identifier consists of its linked payment hash, followed
+	// A version 0 userID consists of its linked payment hash, followed
 	// by the user ID.
 	case 0:
 		var paymentHash [32]byte
 		if _, err := r.Read(paymentHash[:]); err != nil {
 			return 0, [32]byte{}, [32]byte{}, err
 		}
-		var identifier [32]byte
-		if _, err := r.Read(identifier[:]); err != nil {
+		var userID [32]byte
+		if _, err := r.Read(userID[:]); err != nil {
 			return 0, [32]byte{}, [32]byte{}, err
 		}
 
-		return version, paymentHash, identifier, nil
+		return version, paymentHash, userID, nil
 	}
 
 	return 0, [32]byte{}, [32]byte{}, fmt.Errorf("unkown version: %d", version)
@@ -64,9 +64,9 @@ func DecodeMacIdentifier(id []byte) (uint16, [32]byte, [32]byte, error) {
 func DecodeL402Credentials(macBase64, preimageHex string) (*Credentials,
 	error) {
 
-	macBytes, err := base64.StdEncoding.DecodeString(macBase64)
+	macBytes, err := base64.RawURLEncoding.DecodeString(macBase64)
 	if err != nil {
-		return nil, fmt.Errorf("unable to marshal macaroon: %v", err)
+		return nil, fmt.Errorf("unable to decode macaroon: %v", err)
 	}
 
 	mac := &macaroon.Macaroon{}
@@ -75,7 +75,7 @@ func DecodeL402Credentials(macBase64, preimageHex string) (*Credentials,
 		return nil, fmt.Errorf("invalid macaroon: %s", macBase64)
 	}
 
-	version, paymentHash, identifier, err := DecodeMacIdentifier(mac.Id())
+	version, paymentHash, _, err := DecodeMacIdentifier(mac.Id())
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode macaroon identifier: %v", err)
 	}
@@ -97,7 +97,7 @@ func DecodeL402Credentials(macBase64, preimageHex string) (*Credentials,
 		Preimage:    preimage,
 		Version:     version,
 		PaymentHash: paymentHash,
-		Identifier:  hex.EncodeToString(identifier[:]),
+		Identifier:  hex.EncodeToString(mac.Id()),
 	}, nil
 }
 

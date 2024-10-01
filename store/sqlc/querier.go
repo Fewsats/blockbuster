@@ -16,6 +16,7 @@ type Querier interface {
 	DeleteExpiredTokens(ctx context.Context, expiration time.Time) error
 	DeleteToken(ctx context.Context, token string) error
 	DeleteVideo(ctx context.Context, externalID string) error
+	GetInvoiceStatus(ctx context.Context, paymentHash string) (InvoiceStatus, error)
 	GetOfferByPaymentHash(ctx context.Context, paymentHash string) (Offer, error)
 	GetPurchaseByPaymentHash(ctx context.Context, paymentHash string) (Purchase, error)
 	GetRootKeyByIdentifier(ctx context.Context, identifier string) (string, error)
@@ -32,6 +33,7 @@ type Querier interface {
 	UpdateUserLightningAddress(ctx context.Context, arg UpdateUserLightningAddressParams) error
 	UpdateUserVerified(ctx context.Context, arg UpdateUserVerifiedParams) error
 	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
+	UpsertInvoiceStatus(ctx context.Context, arg UpsertInvoiceStatusParams) (InvoiceStatus, error)
 	VerifyToken(ctx context.Context, arg VerifyTokenParams) (string, error)
 }
 

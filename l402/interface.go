@@ -12,6 +12,9 @@ type InvoiceProvider interface {
 	// description.
 	CreateInvoice(ctx context.Context, amount uint64, currency string,
 		description string) (*lightning.LNInvoice, error)
+
+	// GetInvoicePreimage checks the status of a given invoice.
+	GetInvoicePreimage(ctx context.Context, paymentHash string) (string, error)
 }
 
 type Store interface {

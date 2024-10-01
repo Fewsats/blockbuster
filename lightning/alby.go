@@ -92,7 +92,6 @@ func (a *AlbyInvoiceProvider) CreateInvoice(ctx context.Context, amount uint64,
 	req.Header.Set("Authorization", "Bearer "+a.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
-
 	resp, err := a.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -120,4 +119,40 @@ func (a *AlbyInvoiceProvider) CreateInvoice(ctx context.Context, amount uint64,
 		PaymentHash:    invoiceResponse.RHashStr,
 		PaymentRequest: invoiceResponse.PaymentRequest,
 	}, nil
+}
+
+// GetInvoicePreimage retrieves the preimage for a given payment hash. If the
+// invoice is not paid or there's errors, it returns an empty string.
+func (a *AlbyInvoiceProvider) GetInvoicePreimage(ctx context.Context,
+	paymentHash string) (string, error) {
+
+	url := fmt.Sprintf("https://api.getalby.com/invoices/%s", paymentHash)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+a.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.Client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to check invoice status, status code: %d", resp.StatusCode)
+	}
+
+	var invoiceResponse struct {
+		Preimage string `json:"preimage"`
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&invoiceResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return invoiceResponse.Preimage, nil
 }

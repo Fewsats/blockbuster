@@ -76,7 +76,7 @@ func main() {
 	videoMgr := video.NewManager(ordersMgr, cloudflareService, authenticator,
 		store, logger, clock)
 
-	authController := auth.NewController(emailService, logger, store, &cfg.Auth)
+	authController := auth.NewController(emailService, invoiceProvider, logger, store, clock, &cfg.Auth)
 	videoController := video.NewController(videoMgr, authenticator, store, logger, &cfg.Video)
 
 	srv, err := server.NewServer(logger, cfg, authController, videoController)
