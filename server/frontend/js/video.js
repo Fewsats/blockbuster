@@ -1,3 +1,5 @@
+import { updateAccordionState } from './accordion.js';
+
 export function initVideoUpload() {
     const uploadForm = document.getElementById('uploadForm');
     const uploadEmailInput = document.getElementById('email');
@@ -112,6 +114,8 @@ export function initVideoList() {
             if (response.ok) {
                 const r = await response.json();
                 displayVideos(r.videos);
+                // Update accordion state after populating the video list
+                updateAccordionState(r.videos.length);
             } else {
                 displaySignInMessage();
                 throw new Error('Failed to fetch user videos');
@@ -125,19 +129,24 @@ export function initVideoList() {
     function displayVideos(videos) {
         if (!Array.isArray(videos) || videos.length === 0) {
             videoList.innerHTML = '<p class="text-gray-500">You haven\'t uploaded any videos yet.</p>';
+            updateAccordionState(0);
             return;
         }
 
-        videoList.innerHTML = videos.map(video => `
+        videoList.innerHTML = videos.map((video, index) => `
             <div class="bg-gray-100 rounded-lg shadow-md p-4 flex flex-col space-y-2">
                 <div class="flex items-center space-x-4">
                     <img src="${video.cover_url}" alt="${video.title}" class="w-16 h-16 rounded-md object-cover">
                     <div class="flex-1">
                         <h4 class="text-lg font-semibold">${video.title}</h4>
-                        <p class="text-sm text-gray-600">${video.description}</p>
                     </div>
                     <div class="flex justify-end">
-                        <button onclick="copyL402Uri('${video.l402_info_uri}')" class="bg-indigo-600 text-white py-1 px-2 rounded-md text-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Copy L402 URI</button>
+                        <button id="copyButton${index}" onclick="copyL402Uri('${video.l402_info_uri}', 'copyButton${index}')" 
+                            class="bg-indigo-600 text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
+                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
+                            transition duration-150 ease-in-out relative">
+                            Copy L402 URI
+                        </button>
                     </div>
                     <div class="text-right">
                         <p class="text-sm font-semibold">$${(video.price_in_cents / 100).toFixed(2)}</p>
@@ -150,18 +159,44 @@ export function initVideoList() {
 
     function displaySignInMessage() {
         videoList.innerHTML = '<p class="text-gray-500">To view the list of your uploaded videos, please sign in first.</p>';
+        updateAccordionState(0);
     }
 
     fetchUserVideos();
 }
 
-function copyL402Uri(url) {
+function copyL402Uri(url, buttonId) {
     navigator.clipboard.writeText(url).then(() => {
-        alert('L402 URI copied to clipboard!');
+        showNotification('Copied!', buttonId, 'success');
     }).catch(err => {
         console.error('Failed to copy L402 URI: ', err);
-        alert('Failed to copy L402 URI. Please try again.');
+        showNotification('Failed to copy', buttonId, 'error');
     });
+}
+
+function showNotification(message, buttonId, type = 'success') {
+    const button = document.getElementById(buttonId);
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.className = `absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full 
+        px-2 py-1 rounded text-xs text-white bg-gray-800
+        opacity-0 transition-opacity duration-300 pointer-events-none`;
+    
+    button.style.position = 'relative';
+    button.appendChild(notification);
+
+    // Position the notification higher above the button
+    notification.style.top = '-0.1rem';
+
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                button.removeChild(notification);
+            }, 300);
+        }, 2000);
+    }, 10);
 }
 
 // Make copyL402Uri globally accessible
