@@ -134,14 +134,16 @@ export function initVideoList() {
         }
 
         videoList.innerHTML = videos.map((video, index) => `
-            <div class="bg-gray-100 rounded-lg shadow-md p-4 flex flex-col space-y-2">
+            <div class="bg-gray-100 rounded-lg shadow-md p-4 flex flex-col space-y-2 cursor-pointer" 
+                 onclick="redirectToVideo('${video.l402_info_uri}')">
                 <div class="flex items-center space-x-4">
                     <img src="${video.cover_url}" alt="${video.title}" class="w-16 h-16 rounded-md object-cover">
                     <div class="flex-1">
                         <h4 class="text-lg font-semibold">${video.title}</h4>
                     </div>
                     <div class="flex justify-end">
-                        <button id="copyButton${index}" onclick="copyL402Uri('${video.l402_info_uri}', 'copyButton${index}')" 
+                        <button id="copyButton${index}" 
+                            onclick="event.stopPropagation(); copyL402Uri('${video.l402_info_uri}', 'copyButton${index}')" 
                             class="bg-indigo-600 text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
                             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
                             transition duration-150 ease-in-out relative">
@@ -201,3 +203,10 @@ function showNotification(message, buttonId, type = 'success') {
 
 // Make copyL402Uri globally accessible
 window.copyL402Uri = copyL402Uri;
+
+function redirectToVideo(uri) {
+    window.location.href = `http://videos.l402.org/?uri=${encodeURIComponent(uri)}`;
+}
+
+// Make redirectToVideo globally accessible
+window.redirectToVideo = redirectToVideo;
