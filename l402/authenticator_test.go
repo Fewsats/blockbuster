@@ -32,6 +32,13 @@ func (m *MockInvoiceProvider) CreateInvoice(ctx context.Context,
 	return args.Get(0).(*lightning.LNInvoice), args.Error(1)
 }
 
+func (m *MockInvoiceProvider) GetInvoicePreimage(ctx context.Context,
+	paymentHash string) (string, error) {
+
+	args := m.Called(ctx, paymentHash)
+	return args.String(0), args.Error(1)
+}
+
 type MockStore struct {
 	mock.Mock
 }
