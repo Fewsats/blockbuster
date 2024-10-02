@@ -33,7 +33,6 @@ func (s *StreamsService) generateVideoUploadURL(ctx context.Context) (string, st
 		AccountID:          s.accountID,
 		MaxDurationSeconds: 3600, // 1 hour max duration
 		Expiry:             &expiry,
-		AllowedOrigins:     []string{"*"}, // TODO(pol) allow only our front-end
 		RequireSignedURLs:  true,
 	}
 
