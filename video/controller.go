@@ -43,13 +43,12 @@ func NewController(videosMgr *Manager, authenticator Authenticator,
 
 func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 	router.POST("/video/upload", c.UploadVideo)
-	router.GET("/video/search", nil)
-	router.GET("/video/info/:id", c.GetVideoInfo) // Add this line
+	router.GET("/video/info/:id", c.GetVideoInfo)
 }
 
 func (c *Controller) RegisterL402Routes(router *gin.Engine) {
 	router.POST("/video/stream/:id", c.StreamVideo)
-	router.GET("/video/stream/:id", c.HandleGetStreamVideo)
+	router.GET("/video/stream/:id", c.HandleMethodNotAllowed)
 }
 
 func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
@@ -340,6 +339,6 @@ func (c *Controller) GetVideoInfo(gCtx *gin.Context) {
 }
 
 // Add this new method to the Controller
-func (c *Controller) HandleGetStreamVideo(gCtx *gin.Context) {
+func (c *Controller) HandleMethodNotAllowed(gCtx *gin.Context) {
 	gCtx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Method Not Allowed"})
 }

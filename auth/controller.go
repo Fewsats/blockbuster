@@ -38,7 +38,7 @@ type LoginRequest struct {
 }
 
 const (
-	invoiceCheckInterval = 30 * time.Second
+	invoiceCheckInterval = 10 * time.Second
 )
 
 func NewController(emailService *email.ResendService,
