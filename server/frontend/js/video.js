@@ -83,8 +83,9 @@ export function initVideoUpload() {
 
                 if (uploadResponse.ok) {
                     alert('Video uploaded successfully!');
-                    uploadForm.reset();
-                    fetchUserVideos();
+
+                    window.location.reload();
+
                 } else {
                     throw new Error('Failed to upload video to streams storage');
                 }
@@ -207,7 +208,7 @@ function redirectToVideo(uri) {
 // Make redirectToVideo globally accessible
 window.redirectToVideo = redirectToVideo;
 
-function initDropzone(dropzoneId, inputId) {
+function initDropzone(dropzoneId, inputId, fileType) {
     const dropzone = document.getElementById(dropzoneId);
     const input = document.getElementById(inputId);
 
@@ -242,20 +243,41 @@ function initDropzone(dropzoneId, inputId) {
         const dt = e.dataTransfer;
         const files = dt.files;
         input.files = files;
-        updateDropzoneText(dropzone, files[0]);
+        updateDropzoneText(dropzone, files[0], fileType);
     }
 
     dropzone.addEventListener('click', () => input.click());
 
     input.addEventListener('change', () => {
-        updateDropzoneText(dropzone, input.files[0]);
+        updateDropzoneText(dropzone, input.files[0], fileType);
     });
 }
 
-function updateDropzoneText(dropzone, file) {
-    const textElement = dropzone.querySelector('p');
-    textElement.textContent = file ? `Selected: ${file.name}` : 'Drag and drop your file here, or click to select';
+function updateDropzoneText(dropzone, file, fileType) {
+    const previewContainer = dropzone.querySelector('.preview-container');
+    
+    if (file) {
+        if (fileType === 'image/') {
+            const img = previewContainer.querySelector('.preview-image');
+            img.src = URL.createObjectURL(file);
+            img.onload = () => URL.revokeObjectURL(img.src);
+            img.classList.remove('hidden');
+        } else if (fileType === 'video/') {
+            const video = previewContainer.querySelector('.preview-video');
+            video.src = URL.createObjectURL(file);
+            video.onloadedmetadata = () => {
+                URL.revokeObjectURL(video.src);
+            };
+            video.classList.remove('hidden');
+        }
+    } else {
+        const previewElement = previewContainer.querySelector('.preview-image, .preview-video');
+        if (previewElement) {
+            previewElement.classList.add('hidden');
+            previewElement.src = '';
+        }
+    }
 }
 
-initDropzone('coverImageDropzone', 'coverImageInput');
-initDropzone('videoDropzone', 'videoInput');
+initDropzone('coverImageDropzone', 'coverImageInput', 'image/');
+initDropzone('videoDropzone', 'videoInput', 'video/');
