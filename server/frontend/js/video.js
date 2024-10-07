@@ -56,6 +56,12 @@ export function initVideoUpload() {
 
         const formData = new FormData(uploadForm);
 
+        // Convert price from USD to cents
+        const priceInUSD = formData.get('price_in_usd');
+        const priceInCents = Math.round(parseFloat(priceInUSD) * 100);
+        formData.set('price_in_cents', priceInCents);
+        formData.delete('price_in_usd');
+
         try {
             // Create a new FormData object excluding the video field
             const metadataFormData = new FormData();
