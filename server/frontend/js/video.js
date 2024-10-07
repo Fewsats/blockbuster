@@ -54,27 +54,17 @@ export function initVideoUpload() {
 
         setUploadingState(true);
 
-        const formData = new FormData(uploadForm);
+        const formData = new FormData();
+        formData.append('title', titleInput.value);
+        formData.append('description', descriptionInput.value);
+        formData.append('price_in_cents', Math.round(parseFloat(document.getElementById('price_in_usd').value) * 100));
+        formData.append('email', uploadEmailInput.value);
+        formData.append('cover_image', document.getElementById('coverImageInput').files[0]);
 
-        // Convert price from USD to cents
-        const priceInUSD = formData.get('price_in_usd');
-        const priceInCents = Math.round(parseFloat(priceInUSD) * 100);
-        formData.set('price_in_cents', priceInCents);
-        formData.delete('price_in_usd');
-
-        try {
-            // Create a new FormData object excluding the video field
-            const metadataFormData = new FormData();
-            for (const [key, value] of formData.entries()) {
-                if (key !== 'video') {
-                    metadataFormData.append(key, value);
-                }
-            }
-
-            // Step 1: Send form with upload video request (excluding video file)
+        try {            // Step 1: Send form with upload video request (excluding video file)
             const response = await fetch('/video/upload', {
                 method: 'POST',
-                body: metadataFormData,
+                body: formData,
             });
             const data = await response.json();
             if (response.ok) {
@@ -84,7 +74,7 @@ export function initVideoUpload() {
                 // Step 3: Upload the video file to the signed URL
                 const videoFile = formData.get('video');
                 const uploadFormData = new FormData();
-                uploadFormData.append('file', videoFile);
+                uploadFormData.append('file', document.getElementById('videoInput').files[0]);
 
                 const uploadResponse = await fetch(uploadURL, {
                     method: 'POST',
@@ -94,6 +84,7 @@ export function initVideoUpload() {
                 if (uploadResponse.ok) {
                     alert('Video uploaded successfully!');
                     uploadForm.reset();
+                    fetchUserVideos();
                 } else {
                     throw new Error('Failed to upload video to streams storage');
                 }
@@ -112,7 +103,6 @@ export function initVideoUpload() {
 
 export function initVideoList() {
     const videoList = document.getElementById('videoList');
-    const userVideos = document.getElementById('userVideos');
 
     async function fetchUserVideos() {
         try {
@@ -216,3 +206,56 @@ function redirectToVideo(uri) {
 
 // Make redirectToVideo globally accessible
 window.redirectToVideo = redirectToVideo;
+
+function initDropzone(dropzoneId, inputId) {
+    const dropzone = document.getElementById(dropzoneId);
+    const input = document.getElementById(inputId);
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+        dropzone.classList.add('dragover');
+    }
+
+    function unhighlight() {
+        dropzone.classList.remove('dragover');
+    }
+
+    dropzone.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        input.files = files;
+        updateDropzoneText(dropzone, files[0]);
+    }
+
+    dropzone.addEventListener('click', () => input.click());
+
+    input.addEventListener('change', () => {
+        updateDropzoneText(dropzone, input.files[0]);
+    });
+}
+
+function updateDropzoneText(dropzone, file) {
+    const textElement = dropzone.querySelector('p');
+    textElement.textContent = file ? `Selected: ${file.name}` : 'Drag and drop your file here, or click to select';
+}
+
+initDropzone('coverImageDropzone', 'coverImageInput');
+initDropzone('videoDropzone', 'videoInput');
