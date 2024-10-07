@@ -47,13 +47,21 @@ async function initProfile() {
             });
 
             if (response.ok) {
-                alert('Profile updated successfully!');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Profile updated successfully!',
+                });
             } else {
                 const data = await response.json();
                 throw new Error(data.error || 'Failed to update profile');
             }
         } catch (error) {
-            alert(error.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+            });
         }
     });
 }

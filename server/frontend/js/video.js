@@ -42,6 +42,25 @@ export function initVideoUpload() {
         uploadSpinner.classList.toggle('hidden', !isUploading);
     }
 
+    function showSwalNotification(message, type = 'success') {
+        const toast = Swal.mixin({
+            toast: true,
+            position: 'top',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        return toast.fire({
+            icon: type,
+            title: message
+        });
+    }
+
     uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -61,7 +80,8 @@ export function initVideoUpload() {
         formData.append('email', uploadEmailInput.value);
         formData.append('cover_image', document.getElementById('coverImageInput').files[0]);
 
-        try {            // Step 1: Send form with upload video request (excluding video file)
+        try {
+            // Step 1: Send form with upload video request (excluding video file)
             const response = await fetch('/video/upload', {
                 method: 'POST',
                 body: formData,
@@ -69,7 +89,7 @@ export function initVideoUpload() {
             const data = await response.json();
             if (response.ok) {
                 // Step 2: Get the signed URL (uploadURL) from the response
-                const { upload_url: uploadURL } = data;
+                const { upload_url: uploadURL, video_id: videoId } = data;
 
                 // Step 3: Upload the video file to the signed URL
                 const videoFile = formData.get('video');
@@ -82,9 +102,31 @@ export function initVideoUpload() {
                 });
 
                 if (uploadResponse.ok) {
-                    alert('Video uploaded successfully!');
-
-                    window.location.reload();
+                    const l402Uri = `l402://blockbuster.fewsats.com/video/info/${videoId}`;
+                    
+                    Swal.fire({
+                        title: 'Video uploaded successfully!',
+                        html: `Your L402 URI: <br><strong>${l402Uri}</strong>`,
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Copy L402 URI',
+                        cancelButtonText: 'Close'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            navigator.clipboard.writeText(l402Uri).then(() => {
+                                showSwalNotification('Copied!').then(() => {
+                                    setTimeout(() => window.location.reload(), 3000);
+                                });
+                            }).catch(err => {
+                                console.error('Failed to copy: ', err);
+                                showSwalNotification('Failed to copy', 'error').then(() => {
+                                    setTimeout(() => window.location.reload(), 3000);
+                                });
+                            });
+                        } else {
+                            window.location.reload();
+                        }
+                    });
 
                 } else {
                     throw new Error('Failed to upload video to streams storage');
@@ -93,7 +135,7 @@ export function initVideoUpload() {
                 throw new Error(data.error || 'Failed to initiate video upload');
             }
         } catch (error) {
-            alert(error.message);
+            Swal.fire('Error', error.message, 'error');
         } finally {
             setUploadingState(false);
         }
@@ -140,7 +182,7 @@ export function initVideoList() {
                     </div>
                     <div class="flex justify-end">
                         <button id="copyButton${index}" 
-                            onclick="event.stopPropagation(); copyL402Uri('${video.l402_info_uri}', 'copyButton${index}')" 
+                            onclick="event.stopPropagation(); copyL402Uri('${video.l402_info_uri}')" 
                             class="bg-indigo-600 text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
                             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
                             transition duration-150 ease-in-out relative">
@@ -164,38 +206,13 @@ export function initVideoList() {
     fetchUserVideos();
 }
 
-function copyL402Uri(url, buttonId) {
+function copyL402Uri(url) {
     navigator.clipboard.writeText(url).then(() => {
-        showNotification('Copied!', buttonId, 'success');
+        showSwalNotification('Copied!');
     }).catch(err => {
         console.error('Failed to copy L402 URI: ', err);
-        showNotification('Failed to copy', buttonId, 'error');
+        showSwalNotification('Failed to copy', 'error');
     });
-}
-
-function showNotification(message, buttonId, type = 'success') {
-    const button = document.getElementById(buttonId);
-    const notification = document.createElement('div');
-    notification.textContent = message;
-    notification.className = `absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full 
-        px-2 py-1 rounded text-xs text-white bg-gray-800
-        opacity-0 transition-opacity duration-300 pointer-events-none`;
-    
-    button.style.position = 'relative';
-    button.appendChild(notification);
-
-    // Position the notification higher above the button
-    notification.style.top = '-0.1rem';
-
-    setTimeout(() => {
-        notification.style.opacity = '1';
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            setTimeout(() => {
-                button.removeChild(notification);
-            }, 300);
-        }, 2000);
-    }, 10);
 }
 
 // Make copyL402Uri globally accessible
