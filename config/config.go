@@ -34,9 +34,10 @@ type StorageConfig struct {
 }
 
 type Config struct {
-	LogLevel string `long:"log_level" description:"Logging level {debug, info, warn, error}"`
-	Port     int    `long:"port" description:"Port to listen on"`
-	GinMode  string `long:"gin_mode" description:"Gin mode {debug, release}"`
+	LogLevel          string `long:"log_level" description:"Logging level {debug, info, warn, error}"`
+	Port              int    `long:"port" description:"Port to listen on"`
+	GinMode           string `long:"gin_mode" description:"Gin mode {debug, release}"`
+	GoogleAnalyticsID string `long:"google_analytics_id" description:"Google Analytics ID"`
 
 	Auth       auth.Config       `group:"auth" namespace:"auth"`
 	Email      email.Config      `group:"email" namespace:"email"`
@@ -78,9 +79,10 @@ func (c *Config) SetGinMode() {
 
 func DefaultConfig() *Config {
 	return &Config{
-		LogLevel: DefaultLogLevel,
-		Port:     DefaultPort,
-		GinMode:  gin.DebugMode,
+		LogLevel:          DefaultLogLevel,
+		Port:              DefaultPort,
+		GinMode:           gin.DebugMode,
+		GoogleAnalyticsID: "",
 
 		Auth:       *auth.DefaultConfig(),
 		Email:      *email.DefaultConfig(),

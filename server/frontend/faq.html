@@ -5,7 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blockbuster - FAQ</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{.GoogleAnalyticsID}}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', '{{.GoogleAnalyticsID}}');
+    </script>
 </head>
+
 <body class="bg-gray-100 min-h-screen flex flex-col">
     <nav class="bg-indigo-600 p-4 h-18">
 
@@ -28,7 +38,7 @@
 
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="text-xl font-semibold mb-2">How do I sign up for Blockbuster?</h3>
-                <p>You can sign up by clicking the "Sign In / Sign Up" button and entering your email address. A magic link will be sent to your email for authentication.</p>
+                <p>There's no need to sign up, you can simply sign in by clicking the "Sign In" button and entering your email address. You will receive a magic link to your email to sign in.</p>
             </div>
 
             <div class="bg-white rounded-lg shadow-md p-6">

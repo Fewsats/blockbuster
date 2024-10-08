@@ -7,6 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{.GoogleAnalyticsID}}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', '{{.GoogleAnalyticsID}}');
+    </script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
 
@@ -16,7 +25,7 @@
             <div class="flex items-center">
                 <a href="/faq" class="text-white hover:text-indigo-200 px-20 font-bold">FAQ</a>
                 <div id="userInfoContainer" class="relative">
-                    <button id="authButton" class="bg-white text-indigo-600 py-2 px-4 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Sign In / Sign Up</button>
+                    <button id="authButton" class="bg-white text-indigo-600 py-2 px-4 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Sign In</button>
                     <div id="userInfo" class="hidden">
                         <div id="userEmail" class="text-white cursor-pointer flex items-center">
                             <span class="mr-2"></span>

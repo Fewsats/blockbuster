@@ -83,13 +83,19 @@ func (s *Server) setupRoutes() {
 	s.router.SetHTMLTemplate(s.templates)
 
 	s.router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"GoogleAnalyticsID": s.cfg.GoogleAnalyticsID,
+		})
 	})
 	s.router.GET("/faq", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "faq.html", nil)
+		c.HTML(http.StatusOK, "faq.html", gin.H{
+			"GoogleAnalyticsID": s.cfg.GoogleAnalyticsID,
+		})
 	})
 	s.router.GET("/profile", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "profile.html", nil)
+		c.HTML(http.StatusOK, "profile.html", gin.H{
+			"GoogleAnalyticsID": s.cfg.GoogleAnalyticsID,
+		})
 	})
 
 	s.auth.RegisterPublicRoutes(s.router)

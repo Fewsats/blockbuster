@@ -1,5 +1,24 @@
 import { updateAccordionState } from './accordion.js';
 
+function showSwalNotification(message, type = 'success') {
+    const toast = Swal.mixin({
+        toast: true,
+        position: 'top',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    });
+
+    return toast.fire({
+        icon: type,
+        title: message
+    });
+}
+
 export function initVideoUpload() {
     const uploadForm = document.getElementById('uploadForm');
     const uploadEmailInput = document.getElementById('email');
@@ -40,25 +59,6 @@ export function initVideoUpload() {
         uploadButton.disabled = isUploading;
         uploadButton.querySelector('span').textContent = isUploading ? 'Uploading...' : 'Upload Video';
         uploadSpinner.classList.toggle('hidden', !isUploading);
-    }
-
-    function showSwalNotification(message, type = 'success') {
-        const toast = Swal.mixin({
-            toast: true,
-            position: 'top',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer)
-                toast.addEventListener('mouseleave', Swal.resumeTimer)
-            }
-        });
-
-        return toast.fire({
-            icon: type,
-            title: message
-        });
     }
 
     uploadForm.addEventListener('submit', async (e) => {
