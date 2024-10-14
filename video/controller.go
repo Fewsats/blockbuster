@@ -1,6 +1,8 @@
 package video
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"mime/multipart"
@@ -48,7 +50,7 @@ func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 
 func (c *Controller) RegisterL402Routes(router *gin.Engine) {
 	router.POST("/video/stream/:id", c.StreamVideo)
-	router.GET("/video/stream/:id", c.HandleMethodNotAllowed)
+	router.GET("/video/stream/:id", c.StreamVideoGET)
 }
 
 func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
@@ -160,7 +162,10 @@ type StreamVideoRequest struct {
 	Signature string `json:"signature" binding:"required"`
 }
 
-func (c *Controller) StreamVideo(gCtx *gin.Context) {
+// ValidatorFunc is a function type for request validation
+type ValidatorFunc func(gCtx *gin.Context) (string, error)
+
+func (c *Controller) handleStreamVideo(gCtx *gin.Context, validator ValidatorFunc) {
 	ctx := gCtx.Request.Context()
 	externalID, err := extractExternalVideoID(gCtx)
 	if err != nil {
@@ -194,6 +199,7 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 	// Step 1.1: A set of valid L402 credentials was provided so we will record the sale
 	// and allow the user to stream the video.
 	case err == nil:
+		// Valid L402 credentials provided
 		err = c.videos.RecordPurchaseAndView(ctx, externalID, paymentHash, "videos")
 		if err != nil {
 			c.logger.Error(
@@ -228,67 +234,90 @@ func (c *Controller) StreamVideo(gCtx *gin.Context) {
 		return
 	}
 
-	// Step 2: No L402 credentials have been provided, let's check if the request is from a valid
+	// Step 2: No L402 credentials have been provided if:
+	// - GET request -> return a challenge
+	// - POST request -> let's check if the request is from a valid
 	// user and contains all the required params to send back a challenge
-	// This step is reached when err == ErrMissingAuthorizationHeader || ErrInvalidPreimage
+	// This step is reached when:
+	//   err == ErrMissingAuthorizationHeader || ErrInvalidPreimage
 	c.logger.Debug(
 		"missing Authorization header",
 		"error", err,
 	)
 
-	var req StreamVideoRequest
-	if err := gCtx.ShouldBindJSON(&req); err != nil {
-		c.logger.Error("Invalid request", "error", err)
-		gCtx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-
-	err = c.authenticator.ValidateSignature(req.PubKey, req.Signature,
-		req.Domain, req.Timestamp)
+	pubKey, err := validator(gCtx)
 	if err != nil {
 		c.logger.Error("Invalid request", "error", err)
 		gCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	challenge, err := c.videos.CreateL402Challenge(ctx, req.PubKey, externalID)
+	challenge, err := c.videos.CreateL402Challenge(ctx, pubKey, externalID)
 	if err != nil {
-		c.logger.Error(
-			"failed to create challenge",
+		c.logger.Error("failed to create challenge",
 			"file_id", externalID,
 			"error", err,
 		)
-
 		gCtx.JSON(
 			http.StatusInternalServerError,
 			gin.H{"error": "failed to create L402 challenge"},
 		)
-
 		return
 	}
 
 	headerKey := challenge.HeaderKey()
 	headerValue, err := challenge.HeaderValue()
 	if err != nil {
-		c.logger.Error(
-			"failed to get challenge header value",
-			"error", err,
-		)
-
+		c.logger.Error("failed to get challenge header value", "error", err)
 		gCtx.JSON(
 			http.StatusInternalServerError,
 			gin.H{"error": "failed to get challenge header value"},
 		)
-
 		return
 	}
 
 	gCtx.Writer.Header().Set(headerKey, headerValue)
+	gCtx.JSON(http.StatusPaymentRequired, gin.H{"error": "Payment Required"})
+}
 
-	gCtx.JSON(
-		http.StatusPaymentRequired,
-		gin.H{"error": "Payment Required"},
-	)
+func (c *Controller) StreamVideo(gCtx *gin.Context) {
+	validator := func(gCtx *gin.Context) (string, error) {
+		var req StreamVideoRequest
+		if err := gCtx.ShouldBindJSON(&req); err != nil {
+			return "", fmt.Errorf("invalid request: %w", err)
+		}
+
+		err := c.authenticator.ValidateSignature(req.PubKey, req.Signature,
+			req.Domain, req.Timestamp)
+		if err != nil {
+			return "", fmt.Errorf("invalid signature: %w", err)
+		}
+
+		return req.PubKey, nil
+	}
+
+	c.handleStreamVideo(gCtx, validator)
+}
+
+func (c *Controller) StreamVideoGET(gCtx *gin.Context) {
+	validator := func(gCtx *gin.Context) (string, error) {
+		randomPubKey, err := generateRandomPubKey()
+		if err != nil {
+			return "", fmt.Errorf("failed to generate random public key: %w", err)
+		}
+		return randomPubKey, nil
+	}
+
+	c.handleStreamVideo(gCtx, validator)
+}
+
+func generateRandomPubKey() (string, error) {
+	key := make([]byte, 32)
+	_, err := rand.Read(key)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(key), nil
 }
 
 // GetVideoInfo returns the L402 stream information for a given video
@@ -303,7 +332,10 @@ func (c *Controller) GetVideoInfo(gCtx *gin.Context) {
 	video, err := c.store.GetVideoByExternalID(gCtx, externalID)
 	if err != nil {
 		c.logger.Error("Failed to fetch video info", "error", err)
-		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch video info"})
+		gCtx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": "Failed to fetch video info"},
+		)
 		return
 	}
 
