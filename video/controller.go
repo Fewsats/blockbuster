@@ -46,6 +46,7 @@ func NewController(videosMgr *Manager, authenticator Authenticator,
 func (c *Controller) RegisterPublicRoutes(router *gin.Engine) {
 	router.POST("/video/upload", c.UploadVideo)
 	router.GET("/video/info/:id", c.GetVideoInfo)
+	router.GET("/video/:id", c.handleVideoPage)
 }
 
 func (c *Controller) RegisterL402Routes(router *gin.Engine) {
@@ -373,4 +374,27 @@ func (c *Controller) GetVideoInfo(gCtx *gin.Context) {
 // Add this new method to the Controller
 func (c *Controller) HandleMethodNotAllowed(gCtx *gin.Context) {
 	gCtx.JSON(http.StatusMethodNotAllowed, gin.H{"error": "Method Not Allowed"})
+}
+
+func (c *Controller) handleVideoPage(gCtx *gin.Context) {
+	videoID := gCtx.Param("id")
+
+	// Fetch video details from the database
+	video, err := c.store.GetVideoByExternalID(gCtx, videoID)
+	if err != nil {
+		gCtx.JSON(http.StatusNotFound, gin.H{"error": "Video not found"})
+		return
+	}
+
+	// Prepare data for the template
+	data := gin.H{
+		"Title":        video.Title,
+		"Description":  video.Description,
+		"VideoURL":     fmt.Sprintf("https://blockbuster.fewsats.com/video/stream/%s", video.ExternalID),
+		"CoverURL":     video.CoverURL,
+		"PriceInCents": float64(video.PriceInCents) / 100,
+	}
+
+	// Render the video page template
+	gCtx.HTML(http.StatusOK, "video.html", data)
 }

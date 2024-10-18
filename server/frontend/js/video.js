@@ -181,12 +181,12 @@ export function initVideoList() {
                         <h4 class="text-lg font-semibold">${video.title}</h4>
                     </div>
                     <div class="flex justify-end">
-                        <button id="copyButton${index}" 
-                            onclick="event.stopPropagation(); copyL402Uri('${video.l402_info_uri}')" 
-                            class="bg-indigo-600 text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
+                        <button id="postOnXButton${index}"
+                            onclick="event.stopPropagation(); postOnX('${video.title}', ${video.price_in_cents}, '${video.external_id}')"
+                            class="bg-black text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
                             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
                             transition duration-150 ease-in-out relative">
-                            Copy L402 URI
+                            Post on X
                         </button>
                     </div>
                     <div class="text-right">
@@ -205,18 +205,6 @@ export function initVideoList() {
 
     fetchUserVideos();
 }
-
-function copyL402Uri(url) {
-    navigator.clipboard.writeText(url).then(() => {
-        showSwalNotification('Copied!');
-    }).catch(err => {
-        console.error('Failed to copy L402 URI: ', err);
-        showSwalNotification('Failed to copy', 'error');
-    });
-}
-
-// Make copyL402Uri globally accessible
-window.copyL402Uri = copyL402Uri;
 
 function redirectToVideo(uri) {
     window.location.href = `http://videos.l402.org/?uri=${encodeURIComponent(uri)}`;
@@ -298,3 +286,38 @@ function updateDropzoneText(dropzone, file, fileType) {
 
 initDropzone('coverImageDropzone', 'coverImageInput', 'image/');
 initDropzone('videoDropzone', 'videoInput', 'video/');
+
+function copyL402Uri(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        showSwalNotification('Copied!');
+    }).catch(err => {
+        console.error('Failed to copy L402 URI: ', err);
+        showSwalNotification('Failed to copy', 'error');
+    });
+}
+
+// Make copyL402Uri globally accessible
+window.copyL402Uri = copyL402Uri;
+
+
+function postOnX(title, priceInCents, videoId) {
+    const extensionUrl = 'SHORT URL TO CHROME EXTENSION'; 
+    const priceInUSD = (priceInCents / 100).toFixed(2);
+    const videoUrl = `https://blockbuster.fewsats.com/video/${videoId}`;
+    
+    const postText = `Get access to my latest content: "${title}"
+
+💰 Price: $${priceInUSD} USD
+
+One extension away from the best exclusive content: ${extensionUrl}
+
+${videoUrl}`;
+
+    const encodedPost = encodeURIComponent(postText);
+    const xPostUrl = `https://twitter.com/intent/tweet?text=${encodedPost}`;
+
+    window.open(xPostUrl, '_blank');
+}
+
+// Make postOnX globally accessible
+window.postOnX = postOnX;
