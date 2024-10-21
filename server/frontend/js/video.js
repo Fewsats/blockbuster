@@ -173,9 +173,8 @@ export function initVideoList() {
         }
 
         videoList.innerHTML = videos.map((video, index) => `
-            <div class="bg-gray-100 rounded-lg shadow-md p-4 flex flex-col space-y-2 cursor-pointer" 
-                 onclick="redirectToVideo('${video.l402_info_uri}')">
-                <div class="flex items-center space-x-4">
+            <div class="bg-gray-100 rounded-lg shadow-md p-4 mb-4">
+                <div class="flex items-center space-x-4 cursor-pointer" onclick="toggleAccordion(${index})">
                     <img src="${video.cover_url}" alt="${video.title}" class="w-16 h-16 rounded-md object-cover">
                     <div class="flex-1">
                         <h4 class="text-lg font-semibold">${video.title}</h4>
@@ -202,6 +201,40 @@ export function initVideoList() {
                         <p class="text-xs text-gray-500">${video.total_views} views</p>
                         <p class="text-xs text-gray-500">${video.total_purchases} purchases</p>
                     </div>
+                    <svg class="w-6 h-6 transform transition-transform duration-200" id="accordionIcon${index}" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+                <div class="mt-4 hidden" id="videoDetails${index}">
+                    <form onsubmit="updateVideo(event, '${video.external_id}', ${index})" class="space-y-4">
+                        <div>
+                            <label for="title${index}" class="block text-sm font-medium text-gray-700">Title</label>
+                            <input type="text" id="title${index}" name="title" value="${video.title}" 
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                                focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 
+                                px-3 py-2">
+                        </div>
+                        <div>
+                            <label for="description${index}" class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea id="description${index}" name="description" rows="3" 
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                                focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 
+                                px-3 py-2">${video.description}</textarea>
+                        </div>
+                        <div>
+                            <label for="price${index}" class="block text-sm font-medium text-gray-700">Price (in cents)</label>
+                            <input type="number" id="price${index}" name="price" value="${video.price_in_cents}" 
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                                focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 
+                                px-3 py-2">
+                        </div>
+                        <button type="submit" 
+                            class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md text-sm 
+                            hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 
+                            focus:ring-offset-2 transition duration-150 ease-in-out">
+                            Update Video
+                        </button>
+                    </form>
                 </div>
             </div>
         `).join('');
@@ -330,4 +363,56 @@ ${videoUrl}`;
 
 // Make postOnX globally accessible
 window.postOnX = postOnX;
+
+function toggleAccordion(index) {
+    const detailsElement = document.getElementById(`videoDetails${index}`);
+    const iconElement = document.getElementById(`accordionIcon${index}`);
+    
+    detailsElement.classList.toggle('hidden');
+    iconElement.classList.toggle('rotate-180');
+}
+
+// Make toggleAccordion globally accessible
+window.toggleAccordion = toggleAccordion;
+
+async function updateVideo(event, externalId, index) {
+    event.preventDefault();
+    const form = event.target;
+    const title = form.title.value;
+    const description = form.description.value;
+    const priceInCents = parseInt(form.price.value);
+
+    try {
+        const response = await fetch(`/video/update/${externalId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ title, description, price_in_cents: priceInCents }),
+        });
+
+        if (response.ok) {
+            const updatedVideo = await response.json();
+            updateVideoInList(index, updatedVideo);
+            showSwalNotification('Video updated successfully');
+        } else {
+            throw new Error('Failed to update video');
+        }
+    } catch (error) {
+        console.error('Error updating video:', error);
+        showSwalNotification('Failed to update video', 'error');
+    }
+}
+
+function updateVideoInList(index, updatedVideo) {
+    const videoElement = document.querySelector(`#videoList > div:nth-child(${index + 1})`);
+    if (videoElement) {
+        videoElement.querySelector('h4').textContent = updatedVideo.title;
+        videoElement.querySelector('p').textContent = updatedVideo.description.substring(0, 100) + (updatedVideo.description.length > 100 ? '...' : '');
+        videoElement.querySelector('.text-sm.font-semibold').textContent = `$${(updatedVideo.price_in_cents / 100).toFixed(2)}`;
+    }
+}
+
+// Make updateVideo globally accessible
+window.updateVideo = updateVideo;
 

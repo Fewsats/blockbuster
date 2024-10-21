@@ -5,7 +5,7 @@ import { initAccordion } from './accordion.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     initAuth();
-    initAccordion(); // Move this before initVideoList
+    initAccordion();
     initVideoUpload();
     initVideoList();
     initIntercom();
