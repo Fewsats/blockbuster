@@ -181,9 +181,17 @@ export function initVideoList() {
                         <h4 class="text-lg font-semibold">${video.title}</h4>
                     </div>
                     <div class="flex justify-end">
+                        <button id="copyButton${index}" 
+                            onclick="event.stopPropagation(); copyL402Uri('${video.l402_info_uri}')"
+                            class="mr-1 bg-indigo-600 text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
+                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
+                            transition duration-150 ease-in-out relative">
+                            Copy L402 URI
+                        </button>
+
                         <button id="postOnXButton${index}"
                             onclick="event.stopPropagation(); postOnX('${video.title}', ${video.price_in_cents}, '${video.external_id}')"
-                            class="bg-black text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
+                            class="mr-1 bg-black text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
                             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
                             transition duration-150 ease-in-out relative">
                             Post on X
@@ -192,6 +200,7 @@ export function initVideoList() {
                     <div class="text-right">
                         <p class="text-sm font-semibold">$${(video.price_in_cents / 100).toFixed(2)}</p>
                         <p class="text-xs text-gray-500">${video.total_views} views</p>
+                        <p class="text-xs text-gray-500">${video.total_purchases} purchases</p>
                     </div>
                 </div>
             </div>
@@ -321,3 +330,4 @@ ${videoUrl}`;
 
 // Make postOnX globally accessible
 window.postOnX = postOnX;
+

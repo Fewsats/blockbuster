@@ -205,3 +205,4 @@ func (m *Manager) PrepareVideoUpload(ctx context.Context, userID int64,
 
 	return uploadURL, externalID, nil
 }
+

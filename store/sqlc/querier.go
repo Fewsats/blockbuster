@@ -23,12 +23,12 @@ type Querier interface {
 	GetToken(ctx context.Context, token string) (Token, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserIDByEmail(ctx context.Context, email string) (int64, error)
-	GetVideoByExternalID(ctx context.Context, externalID string) (Video, error)
+	GetVideoByExternalID(ctx context.Context, externalID string) (GetVideoByExternalIDRow, error)
 	IncrementVideoViews(ctx context.Context, externalID string) error
 	InsertMacaroonToken(ctx context.Context, arg InsertMacaroonTokenParams) (int64, error)
 	InsertOffer(ctx context.Context, arg InsertOfferParams) (int64, error)
 	InsertPurchase(ctx context.Context, arg InsertPurchaseParams) (int64, error)
-	ListUserVideos(ctx context.Context, userID int64) ([]Video, error)
+	ListUserVideos(ctx context.Context, userID int64) ([]ListUserVideosRow, error)
 	SearchVideos(ctx context.Context, arg SearchVideosParams) ([]Video, error)
 	UpdateUserLightningAddress(ctx context.Context, arg UpdateUserLightningAddressParams) error
 	UpdateUserVerified(ctx context.Context, arg UpdateUserVerifiedParams) error

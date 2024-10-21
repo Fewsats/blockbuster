@@ -90,11 +90,12 @@ type Video struct {
 	L402URL     string `json:"l402_url"`
 	L402InfoURI string `json:"l402_info_uri"`
 
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	CoverURL     string `json:"cover_url"`
-	PriceInCents int64  `json:"price_in_cents"`
-	TotalViews   int64  `json:"total_views"`
+	Title          string `json:"title"`
+	Description    string `json:"description"`
+	CoverURL       string `json:"cover_url"`
+	PriceInCents   int64  `json:"price_in_cents"`
+	TotalViews     int64  `json:"total_views"`
+	TotalPurchases int64  `json:"total_purchases"`
 
 	ThumbnailURL      string  `json:"-"`
 	HlsURL            string  `json:"-"`

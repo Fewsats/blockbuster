@@ -4,13 +4,20 @@ VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetVideoByExternalID :one
-SELECT * FROM videos
-WHERE external_id = ? LIMIT 1;
+SELECT v.*, COUNT(p.id) as total_purchases
+FROM videos v
+LEFT JOIN purchases p ON v.external_id = p.external_id
+WHERE v.external_id = ?
+GROUP BY v.id
+LIMIT 1;
 
 -- name: ListUserVideos :many
-SELECT * FROM videos
-WHERE user_id = ?
-ORDER BY created_at DESC;
+SELECT v.*, COUNT(p.id) as total_purchases
+FROM videos v
+LEFT JOIN purchases p ON v.external_id = p.external_id
+WHERE v.user_id = ?
+GROUP BY v.id
+ORDER BY v.created_at DESC;
 
 -- name: DeleteVideo :exec
 DELETE FROM videos

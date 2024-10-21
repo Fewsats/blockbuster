@@ -71,13 +71,38 @@ func (q *Queries) DeleteVideo(ctx context.Context, externalID string) error {
 }
 
 const getVideoByExternalID = `-- name: GetVideoByExternalID :one
-SELECT id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at FROM videos
-WHERE external_id = ? LIMIT 1
+SELECT v.id, v.external_id, v.user_id, v.title, v.description, v.cover_url, v.price_in_cents, v.total_views, v.thumbnail_url, v.hls_url, v.dash_url, v.duration_in_seconds, v.size_in_bytes, v.input_height, v.input_width, v.ready_to_stream, v.created_at, COUNT(p.id) as total_purchases
+FROM videos v
+LEFT JOIN purchases p ON v.external_id = p.external_id
+WHERE v.external_id = ?
+GROUP BY v.id
+LIMIT 1
 `
 
-func (q *Queries) GetVideoByExternalID(ctx context.Context, externalID string) (Video, error) {
+type GetVideoByExternalIDRow struct {
+	ID                int64
+	ExternalID        string
+	UserID            int64
+	Title             string
+	Description       string
+	CoverUrl          string
+	PriceInCents      int64
+	TotalViews        int64
+	ThumbnailUrl      sql.NullString
+	HlsUrl            sql.NullString
+	DashUrl           sql.NullString
+	DurationInSeconds sql.NullFloat64
+	SizeInBytes       sql.NullInt64
+	InputHeight       sql.NullInt64
+	InputWidth        sql.NullInt64
+	ReadyToStream     bool
+	CreatedAt         time.Time
+	TotalPurchases    int64
+}
+
+func (q *Queries) GetVideoByExternalID(ctx context.Context, externalID string) (GetVideoByExternalIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getVideoByExternalID, externalID)
-	var i Video
+	var i GetVideoByExternalIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.ExternalID,
@@ -96,6 +121,7 @@ func (q *Queries) GetVideoByExternalID(ctx context.Context, externalID string) (
 		&i.InputWidth,
 		&i.ReadyToStream,
 		&i.CreatedAt,
+		&i.TotalPurchases,
 	)
 	return i, err
 }
@@ -112,20 +138,44 @@ func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) er
 }
 
 const listUserVideos = `-- name: ListUserVideos :many
-SELECT id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at FROM videos
-WHERE user_id = ?
-ORDER BY created_at DESC
+SELECT v.id, v.external_id, v.user_id, v.title, v.description, v.cover_url, v.price_in_cents, v.total_views, v.thumbnail_url, v.hls_url, v.dash_url, v.duration_in_seconds, v.size_in_bytes, v.input_height, v.input_width, v.ready_to_stream, v.created_at, COUNT(p.id) as total_purchases
+FROM videos v
+LEFT JOIN purchases p ON v.external_id = p.external_id
+WHERE v.user_id = ?
+GROUP BY v.id
+ORDER BY v.created_at DESC
 `
 
-func (q *Queries) ListUserVideos(ctx context.Context, userID int64) ([]Video, error) {
+type ListUserVideosRow struct {
+	ID                int64
+	ExternalID        string
+	UserID            int64
+	Title             string
+	Description       string
+	CoverUrl          string
+	PriceInCents      int64
+	TotalViews        int64
+	ThumbnailUrl      sql.NullString
+	HlsUrl            sql.NullString
+	DashUrl           sql.NullString
+	DurationInSeconds sql.NullFloat64
+	SizeInBytes       sql.NullInt64
+	InputHeight       sql.NullInt64
+	InputWidth        sql.NullInt64
+	ReadyToStream     bool
+	CreatedAt         time.Time
+	TotalPurchases    int64
+}
+
+func (q *Queries) ListUserVideos(ctx context.Context, userID int64) ([]ListUserVideosRow, error) {
 	rows, err := q.db.QueryContext(ctx, listUserVideos, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Video
+	var items []ListUserVideosRow
 	for rows.Next() {
-		var i Video
+		var i ListUserVideosRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ExternalID,
@@ -144,6 +194,7 @@ func (q *Queries) ListUserVideos(ctx context.Context, userID int64) ([]Video, er
 			&i.InputWidth,
 			&i.ReadyToStream,
 			&i.CreatedAt,
+			&i.TotalPurchases,
 		); err != nil {
 			return nil, err
 		}
