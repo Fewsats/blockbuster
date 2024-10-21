@@ -56,7 +56,16 @@ func (m *MockStore) IncrementVideoViews(ctx context.Context, externalID string) 
 	return args.Error(0)
 }
 
-func (m *MockStore) UpdateVideo(ctx context.Context, externalID string, params *video.CloudflareVideoInfo) (*video.Video, error) {
+func (m *MockStore) UpdateCloudflareInfo(ctx context.Context,
+	externalID string, params *video.CloudflareVideoInfo) (*video.Video, error) {
+
+	args := m.Called(ctx, externalID, params)
+	return args.Get(0).(*video.Video), args.Error(1)
+}
+
+func (m *MockStore) UpdateVideoInfo(ctx context.Context,
+	externalID string, params *video.UpdateVideoInfoParams) (*video.Video, error) {
+
 	args := m.Called(ctx, externalID, params)
 	return args.Get(0).(*video.Video), args.Error(1)
 }
@@ -187,7 +196,7 @@ func TestStreamVideo(t *testing.T) {
 				mockCloudflare.On("GetStreamVideoInfo", mock.Anything,
 					"externalID",
 				).Return(&cloudflare.StreamVideo{ReadyToStream: true}, nil)
-				mockStore.On("UpdateVideo", mock.Anything, "externalID",
+				mockStore.On("UpdateCloudflareInfo", mock.Anything, "externalID",
 					mock.Anything,
 				).Return(&video.Video{ReadyToStream: true}, nil)
 

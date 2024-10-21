@@ -56,6 +56,7 @@ func (c *Controller) RegisterL402Routes(router *gin.Engine) {
 
 func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
 	router.GET("/user/videos", c.ListUserVideos)
+	router.PUT("/video/:id", c.UpdateVideoInfo)
 }
 
 type UploadVideoRequest struct {
@@ -397,4 +398,29 @@ func (c *Controller) handleVideoPage(gCtx *gin.Context) {
 
 	// Render the video page template
 	gCtx.HTML(http.StatusOK, "video.html", data)
+}
+
+type UpdateVideoInfoRequest struct {
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	PriceInCents int64  `json:"price_in_cents"`
+}
+
+func (c *Controller) UpdateVideoInfo(gCtx *gin.Context) {
+	externalID := gCtx.Param("id")
+	var req UpdateVideoInfoRequest
+	if err := gCtx.ShouldBindJSON(&req); err != nil {
+		c.logger.Error("Invalid request", "error", err)
+		gCtx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updatedVideo, err := c.videos.UpdateVideoInfo(gCtx, externalID, req)
+	if err != nil {
+		c.logger.Error("Failed to update video info", "error", err)
+		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update video info"})
+		return
+	}
+
+	gCtx.JSON(http.StatusOK, updatedVideo)
 }

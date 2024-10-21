@@ -269,7 +269,7 @@ func (q *Queries) SearchVideos(ctx context.Context, arg SearchVideosParams) ([]V
 	return items, nil
 }
 
-const updateVideo = `-- name: UpdateVideo :one
+const updateCloudflareInfo = `-- name: UpdateCloudflareInfo :one
 UPDATE videos
 SET 
   thumbnail_url = COALESCE(?1, thumbnail_url),
@@ -284,7 +284,7 @@ WHERE external_id = ?9
 RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
 `
 
-type UpdateVideoParams struct {
+type UpdateCloudflareInfoParams struct {
 	ThumbnailUrl      sql.NullString
 	HlsUrl            sql.NullString
 	DashUrl           sql.NullString
@@ -296,8 +296,8 @@ type UpdateVideoParams struct {
 	ExternalID        string
 }
 
-func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error) {
-	row := q.db.QueryRowContext(ctx, updateVideo,
+func (q *Queries) UpdateCloudflareInfo(ctx context.Context, arg UpdateCloudflareInfoParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, updateCloudflareInfo,
 		arg.ThumbnailUrl,
 		arg.HlsUrl,
 		arg.DashUrl,
@@ -306,6 +306,53 @@ func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video
 		arg.InputHeight,
 		arg.InputWidth,
 		arg.ReadyToStream,
+		arg.ExternalID,
+	)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.ExternalID,
+		&i.UserID,
+		&i.Title,
+		&i.Description,
+		&i.CoverUrl,
+		&i.PriceInCents,
+		&i.TotalViews,
+		&i.ThumbnailUrl,
+		&i.HlsUrl,
+		&i.DashUrl,
+		&i.DurationInSeconds,
+		&i.SizeInBytes,
+		&i.InputHeight,
+		&i.InputWidth,
+		&i.ReadyToStream,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateVideoInfo = `-- name: UpdateVideoInfo :one
+UPDATE videos
+SET 
+  title = COALESCE(?1, title),
+  description = COALESCE(?2, description),
+  price_in_cents = COALESCE(?3, price_in_cents)
+WHERE external_id = ?4
+RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
+`
+
+type UpdateVideoInfoParams struct {
+	Title        sql.NullString
+	Description  sql.NullString
+	PriceInCents sql.NullInt64
+	ExternalID   string
+}
+
+func (q *Queries) UpdateVideoInfo(ctx context.Context, arg UpdateVideoInfoParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, updateVideoInfo,
+		arg.Title,
+		arg.Description,
+		arg.PriceInCents,
 		arg.ExternalID,
 	)
 	var i Video

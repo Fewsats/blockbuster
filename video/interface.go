@@ -24,7 +24,7 @@ type Store interface {
 	GetOrCreateUserByEmail(ctx context.Context, email string) (int64, error)
 
 	CreateVideo(ctx context.Context, params CreateVideoParams) (*Video, error)
-	UpdateVideo(ctx context.Context, externalID string,
+	UpdateCloudflareInfo(ctx context.Context, externalID string,
 		params *CloudflareVideoInfo) (*Video, error)
 
 	GetVideoByExternalID(ctx context.Context, externalID string) (*Video, error)
@@ -32,6 +32,9 @@ type Store interface {
 
 	// IncrementVideoViews increments the views of a video by 1.
 	IncrementVideoViews(ctx context.Context, externalID string) error
+
+	UpdateVideoInfo(ctx context.Context, externalID string,
+		params *UpdateVideoInfoParams) (*Video, error)
 }
 
 // NotificationService is the interface for sending notifications.
@@ -107,4 +110,10 @@ type Video struct {
 
 	ReadyToStream bool      `json:"ready_to_stream"`
 	CreatedAt     time.Time `json:"created_at"`
+}
+
+type UpdateVideoInfoParams struct {
+	Title        string
+	Description  string
+	PriceInCents int64
 }

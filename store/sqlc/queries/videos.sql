@@ -35,7 +35,7 @@ ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
 
 
--- name: UpdateVideo :one
+-- name: UpdateCloudflareInfo :one
 UPDATE videos
 SET 
   thumbnail_url = COALESCE(sqlc.narg(thumbnail_url), thumbnail_url),
@@ -46,5 +46,14 @@ SET
   input_height = COALESCE(sqlc.narg(input_height), input_height),
   input_width = COALESCE(sqlc.narg(input_width), input_width),
   ready_to_stream = sqlc.arg(ready_to_stream)
+WHERE external_id = sqlc.arg(external_id)
+RETURNING *;
+
+-- name: UpdateVideoInfo :one
+UPDATE videos
+SET 
+  title = COALESCE(sqlc.narg(title), title),
+  description = COALESCE(sqlc.narg(description), description),
+  price_in_cents = COALESCE(sqlc.narg(price_in_cents), price_in_cents)
 WHERE external_id = sqlc.arg(external_id)
 RETURNING *;

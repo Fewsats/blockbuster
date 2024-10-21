@@ -76,12 +76,12 @@ func (s *Store) ListUserVideos(ctx context.Context,
 			ExternalID: v.ExternalID,
 			UserID:     v.UserID,
 
-			Title:        v.Title,
-			Description:  v.Description,
-			CoverURL:     v.CoverUrl,
-			PriceInCents: v.PriceInCents,
-			TotalViews:   v.TotalViews,
-			TotalPurchases: v.TotalPurchases,
+			Title:             v.Title,
+			Description:       v.Description,
+			CoverURL:          v.CoverUrl,
+			PriceInCents:      v.PriceInCents,
+			TotalViews:        v.TotalViews,
+			TotalPurchases:    v.TotalPurchases,
 			ThumbnailURL:      v.ThumbnailUrl.String,
 			HlsURL:            v.HlsUrl.String,
 			DashURL:           v.DashUrl.String,
@@ -98,10 +98,10 @@ func (s *Store) ListUserVideos(ctx context.Context,
 	return result, nil
 }
 
-func (s *Store) UpdateVideo(ctx context.Context, externalID string,
+func (s *Store) UpdateCloudflareInfo(ctx context.Context, externalID string,
 	params *video.CloudflareVideoInfo) (*video.Video, error) {
 
-	v, err := s.queries.UpdateVideo(ctx, sqlc.UpdateVideoParams{
+	v, err := s.queries.UpdateCloudflareInfo(ctx, sqlc.UpdateCloudflareInfoParams{
 		ExternalID: externalID,
 		ThumbnailUrl: sql.NullString{
 			String: params.ThumbnailURL,
@@ -159,4 +159,45 @@ func (s *Store) UpdateVideo(ctx context.Context, externalID string,
 
 func (s *Store) IncrementVideoViews(ctx context.Context, externalID string) error {
 	return s.queries.IncrementVideoViews(ctx, externalID)
+}
+
+func (s *Store) UpdateVideoInfo(ctx context.Context, externalID string, params *video.UpdateVideoInfoParams) (*video.Video, error) {
+	v, err := s.queries.UpdateVideoInfo(ctx, sqlc.UpdateVideoInfoParams{
+		ExternalID: externalID,
+		Title: sql.NullString{
+			String: params.Title,
+			Valid:  params.Title != "",
+		},
+		Description: sql.NullString{
+			String: params.Description,
+			Valid:  params.Description != "",
+		},
+		PriceInCents: sql.NullInt64{
+			Int64: params.PriceInCents,
+			Valid: params.PriceInCents != 0,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &video.Video{
+		ID:           v.ID,
+		ExternalID:   v.ExternalID,
+		UserID:       v.UserID,
+		Title:        v.Title,
+		Description:  v.Description,
+		CoverURL:     v.CoverUrl,
+		PriceInCents: v.PriceInCents,
+		TotalViews:   v.TotalViews,
+
+		ThumbnailURL:      v.ThumbnailUrl.String,
+		HlsURL:            v.HlsUrl.String,
+		DashURL:           v.DashUrl.String,
+		DurationInSeconds: v.DurationInSeconds.Float64,
+		SizeInBytes:       v.SizeInBytes.Int64,
+		InputHeight:       int32(v.InputHeight.Int64),
+		InputWidth:        int32(v.InputWidth.Int64),
+		ReadyToStream:     v.ReadyToStream,
+		CreatedAt:         v.CreatedAt,
+	}, nil
 }

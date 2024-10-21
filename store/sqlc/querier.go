@@ -30,9 +30,10 @@ type Querier interface {
 	InsertPurchase(ctx context.Context, arg InsertPurchaseParams) (int64, error)
 	ListUserVideos(ctx context.Context, userID int64) ([]ListUserVideosRow, error)
 	SearchVideos(ctx context.Context, arg SearchVideosParams) ([]Video, error)
+	UpdateCloudflareInfo(ctx context.Context, arg UpdateCloudflareInfoParams) (Video, error)
 	UpdateUserLightningAddress(ctx context.Context, arg UpdateUserLightningAddressParams) error
 	UpdateUserVerified(ctx context.Context, arg UpdateUserVerifiedParams) error
-	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
+	UpdateVideoInfo(ctx context.Context, arg UpdateVideoInfoParams) (Video, error)
 	UpsertInvoiceStatus(ctx context.Context, arg UpsertInvoiceStatusParams) (InvoiceStatus, error)
 	VerifyToken(ctx context.Context, arg VerifyTokenParams) (string, error)
 }

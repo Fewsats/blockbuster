@@ -383,8 +383,8 @@ async function updateVideo(event, externalId, index) {
     const priceInCents = parseInt(form.price.value);
 
     try {
-        const response = await fetch(`/video/update/${externalId}`, {
-            method: 'POST',
+        const response = await fetch(`/video/${externalId}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },

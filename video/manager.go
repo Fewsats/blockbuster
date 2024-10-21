@@ -57,7 +57,7 @@ func (m *Manager) IsVideoReady(ctx context.Context, externalID string) error {
 			return fmt.Errorf("failed to get video info: %w", err)
 		}
 
-		video, err = m.store.UpdateVideo(ctx, externalID, &CloudflareVideoInfo{
+		video, err = m.store.UpdateCloudflareInfo(ctx, externalID, &CloudflareVideoInfo{
 			ThumbnailURL:      videoInfo.Thumbnail,
 			DashURL:           videoInfo.Playback.Dash,
 			HLSURL:            videoInfo.Playback.HLS,
@@ -206,3 +206,15 @@ func (m *Manager) PrepareVideoUpload(ctx context.Context, userID int64,
 	return uploadURL, externalID, nil
 }
 
+func (m *Manager) UpdateVideoInfo(ctx context.Context, externalID string, req UpdateVideoInfoRequest) (*Video, error) {
+	video, err := m.store.UpdateVideoInfo(ctx, externalID, &UpdateVideoInfoParams{
+		Title:        req.Title,
+		Description:  req.Description,
+		PriceInCents: req.PriceInCents,
+	})
+	if err != nil {
+		m.logger.Error("Failed to update video info", "error", err)
+		return nil, fmt.Errorf("failed to update video info: %w", err)
+	}
+	return video, nil
+}
