@@ -7,7 +7,7 @@ RETURNING *;
 SELECT v.*, COUNT(p.id) as total_purchases
 FROM videos v
 LEFT JOIN purchases p ON v.external_id = p.external_id
-WHERE v.external_id = ?
+WHERE v.external_id = ? AND v.deleted = FALSE
 GROUP BY v.id
 LIMIT 1;
 
@@ -15,13 +15,9 @@ LIMIT 1;
 SELECT v.*, COUNT(p.id) as total_purchases
 FROM videos v
 LEFT JOIN purchases p ON v.external_id = p.external_id
-WHERE v.user_id = ?
+WHERE v.user_id = ? AND v.deleted = FALSE
 GROUP BY v.id
 ORDER BY v.created_at DESC;
-
--- name: DeleteVideo :exec
-DELETE FROM videos
-WHERE external_id = ?;
 
 -- name: IncrementVideoViews :exec
 UPDATE videos
@@ -30,7 +26,7 @@ WHERE external_id = ?;
 
 -- name: SearchVideos :many
 SELECT * FROM videos
-WHERE title LIKE ? OR description LIKE ?
+WHERE (title LIKE ? OR description LIKE ?) AND deleted = FALSE
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
 
@@ -57,3 +53,8 @@ SET
   price_in_cents = COALESCE(sqlc.narg(price_in_cents), price_in_cents)
 WHERE external_id = sqlc.arg(external_id)
 RETURNING *;
+
+-- name: DeleteVideo :exec
+UPDATE videos
+SET deleted = TRUE
+WHERE external_id = ?

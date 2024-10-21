@@ -83,4 +83,5 @@ type Video struct {
 	InputWidth        sql.NullInt64
 	ReadyToStream     bool
 	CreatedAt         time.Time
+	Deleted           bool
 }

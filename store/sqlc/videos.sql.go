@@ -14,7 +14,7 @@ import (
 const createVideo = `-- name: CreateVideo :one
 INSERT INTO videos (external_id, user_id, title, description, cover_url, price_in_cents, created_at)
 VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
+RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at, deleted
 `
 
 type CreateVideoParams struct {
@@ -56,12 +56,14 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 		&i.InputWidth,
 		&i.ReadyToStream,
 		&i.CreatedAt,
+		&i.Deleted,
 	)
 	return i, err
 }
 
 const deleteVideo = `-- name: DeleteVideo :exec
-DELETE FROM videos
+UPDATE videos
+SET deleted = TRUE
 WHERE external_id = ?
 `
 
@@ -71,10 +73,10 @@ func (q *Queries) DeleteVideo(ctx context.Context, externalID string) error {
 }
 
 const getVideoByExternalID = `-- name: GetVideoByExternalID :one
-SELECT v.id, v.external_id, v.user_id, v.title, v.description, v.cover_url, v.price_in_cents, v.total_views, v.thumbnail_url, v.hls_url, v.dash_url, v.duration_in_seconds, v.size_in_bytes, v.input_height, v.input_width, v.ready_to_stream, v.created_at, COUNT(p.id) as total_purchases
+SELECT v.id, v.external_id, v.user_id, v.title, v.description, v.cover_url, v.price_in_cents, v.total_views, v.thumbnail_url, v.hls_url, v.dash_url, v.duration_in_seconds, v.size_in_bytes, v.input_height, v.input_width, v.ready_to_stream, v.created_at, v.deleted, COUNT(p.id) as total_purchases
 FROM videos v
 LEFT JOIN purchases p ON v.external_id = p.external_id
-WHERE v.external_id = ?
+WHERE v.external_id = ? AND v.deleted = FALSE
 GROUP BY v.id
 LIMIT 1
 `
@@ -97,6 +99,7 @@ type GetVideoByExternalIDRow struct {
 	InputWidth        sql.NullInt64
 	ReadyToStream     bool
 	CreatedAt         time.Time
+	Deleted           bool
 	TotalPurchases    int64
 }
 
@@ -121,6 +124,7 @@ func (q *Queries) GetVideoByExternalID(ctx context.Context, externalID string) (
 		&i.InputWidth,
 		&i.ReadyToStream,
 		&i.CreatedAt,
+		&i.Deleted,
 		&i.TotalPurchases,
 	)
 	return i, err
@@ -138,10 +142,10 @@ func (q *Queries) IncrementVideoViews(ctx context.Context, externalID string) er
 }
 
 const listUserVideos = `-- name: ListUserVideos :many
-SELECT v.id, v.external_id, v.user_id, v.title, v.description, v.cover_url, v.price_in_cents, v.total_views, v.thumbnail_url, v.hls_url, v.dash_url, v.duration_in_seconds, v.size_in_bytes, v.input_height, v.input_width, v.ready_to_stream, v.created_at, COUNT(p.id) as total_purchases
+SELECT v.id, v.external_id, v.user_id, v.title, v.description, v.cover_url, v.price_in_cents, v.total_views, v.thumbnail_url, v.hls_url, v.dash_url, v.duration_in_seconds, v.size_in_bytes, v.input_height, v.input_width, v.ready_to_stream, v.created_at, v.deleted, COUNT(p.id) as total_purchases
 FROM videos v
 LEFT JOIN purchases p ON v.external_id = p.external_id
-WHERE v.user_id = ?
+WHERE v.user_id = ? AND v.deleted = FALSE
 GROUP BY v.id
 ORDER BY v.created_at DESC
 `
@@ -164,6 +168,7 @@ type ListUserVideosRow struct {
 	InputWidth        sql.NullInt64
 	ReadyToStream     bool
 	CreatedAt         time.Time
+	Deleted           bool
 	TotalPurchases    int64
 }
 
@@ -194,6 +199,7 @@ func (q *Queries) ListUserVideos(ctx context.Context, userID int64) ([]ListUserV
 			&i.InputWidth,
 			&i.ReadyToStream,
 			&i.CreatedAt,
+			&i.Deleted,
 			&i.TotalPurchases,
 		); err != nil {
 			return nil, err
@@ -210,8 +216,8 @@ func (q *Queries) ListUserVideos(ctx context.Context, userID int64) ([]ListUserV
 }
 
 const searchVideos = `-- name: SearchVideos :many
-SELECT id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at FROM videos
-WHERE title LIKE ? OR description LIKE ?
+SELECT id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at, deleted FROM videos
+WHERE (title LIKE ? OR description LIKE ?) AND deleted = FALSE
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
 `
@@ -255,6 +261,7 @@ func (q *Queries) SearchVideos(ctx context.Context, arg SearchVideosParams) ([]V
 			&i.InputWidth,
 			&i.ReadyToStream,
 			&i.CreatedAt,
+			&i.Deleted,
 		); err != nil {
 			return nil, err
 		}
@@ -281,7 +288,7 @@ SET
   input_width = COALESCE(?7, input_width),
   ready_to_stream = ?8
 WHERE external_id = ?9
-RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
+RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at, deleted
 `
 
 type UpdateCloudflareInfoParams struct {
@@ -327,6 +334,7 @@ func (q *Queries) UpdateCloudflareInfo(ctx context.Context, arg UpdateCloudflare
 		&i.InputWidth,
 		&i.ReadyToStream,
 		&i.CreatedAt,
+		&i.Deleted,
 	)
 	return i, err
 }
@@ -338,7 +346,7 @@ SET
   description = COALESCE(?2, description),
   price_in_cents = COALESCE(?3, price_in_cents)
 WHERE external_id = ?4
-RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at
+RETURNING id, external_id, user_id, title, description, cover_url, price_in_cents, total_views, thumbnail_url, hls_url, dash_url, duration_in_seconds, size_in_bytes, input_height, input_width, ready_to_stream, created_at, deleted
 `
 
 type UpdateVideoInfoParams struct {
@@ -374,6 +382,7 @@ func (q *Queries) UpdateVideoInfo(ctx context.Context, arg UpdateVideoInfoParams
 		&i.InputWidth,
 		&i.ReadyToStream,
 		&i.CreatedAt,
+		&i.Deleted,
 	)
 	return i, err
 }

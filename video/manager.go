@@ -218,3 +218,13 @@ func (m *Manager) UpdateVideoInfo(ctx context.Context, externalID string, req Up
 	}
 	return video, nil
 }
+
+func (m *Manager) DeleteVideo(ctx context.Context, externalID string) error {
+	// Then, delete the video from the database
+	err := m.store.DeleteVideo(ctx, externalID)
+	if err != nil {
+		return fmt.Errorf("failed to delete video from database: %w", err)
+	}
+
+	return nil
+}

@@ -57,6 +57,7 @@ func (c *Controller) RegisterL402Routes(router *gin.Engine) {
 func (c *Controller) RegisterProtectedRoutes(router *gin.Engine) {
 	router.GET("/user/videos", c.ListUserVideos)
 	router.PUT("/video/:id", c.UpdateVideoInfo)
+	router.DELETE("/video/:id", c.DeleteVideo) // Add this line
 }
 
 type UploadVideoRequest struct {
@@ -408,6 +409,14 @@ type UpdateVideoInfoRequest struct {
 
 func (c *Controller) UpdateVideoInfo(gCtx *gin.Context) {
 	externalID := gCtx.Param("id")
+
+	_, err := c.validateVideoOwnership(gCtx, externalID)
+	if err != nil {
+		c.logger.Error("Failed to validate video ownership", "error", err)
+		gCtx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
 	var req UpdateVideoInfoRequest
 	if err := gCtx.ShouldBindJSON(&req); err != nil {
 		c.logger.Error("Invalid request", "error", err)
@@ -423,4 +432,42 @@ func (c *Controller) UpdateVideoInfo(gCtx *gin.Context) {
 	}
 
 	gCtx.JSON(http.StatusOK, updatedVideo)
+}
+
+func (c *Controller) DeleteVideo(gCtx *gin.Context) {
+	externalID := gCtx.Param("id")
+
+	_, err := c.validateVideoOwnership(gCtx, externalID)
+	if err != nil {
+		c.logger.Error("Failed to validate video ownership", "error", err)
+		gCtx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = c.videos.DeleteVideo(gCtx, externalID)
+	if err != nil {
+		c.logger.Error("Failed to delete video", "error", err)
+		gCtx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete video"})
+		return
+	}
+
+	gCtx.JSON(http.StatusOK, gin.H{"message": "Video deleted successfully"})
+}
+
+func (c *Controller) validateVideoOwnership(gCtx *gin.Context, externalID string) (*Video, error) {
+	userID := gCtx.GetInt64("user_id")
+	if userID == 0 {
+		return nil, errors.New("user not authenticated")
+	}
+
+	video, err := c.store.GetVideoByExternalID(gCtx, externalID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get video: %w", err)
+	}
+
+	if video.UserID != userID {
+		return nil, errors.New("user does not own this video")
+	}
+
+	return video, nil
 }

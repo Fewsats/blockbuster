@@ -70,6 +70,11 @@ func (m *MockStore) UpdateVideoInfo(ctx context.Context,
 	return args.Get(0).(*video.Video), args.Error(1)
 }
 
+func (m *MockStore) DeleteVideo(ctx context.Context, externalID string) error {
+	args := m.Called(ctx, externalID)
+	return args.Error(0)
+}	
+
 type MockAuthenticator struct {
 	mock.Mock
 }

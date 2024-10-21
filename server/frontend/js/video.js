@@ -176,22 +176,21 @@ export function initVideoList() {
             <div class="bg-gray-100 rounded-lg shadow-md p-4 mb-4">
                 <div class="flex items-center space-x-4 cursor-pointer" onclick="toggleAccordion(${index})">
                     <img src="${video.cover_url}" alt="${video.title}" class="w-16 h-16 rounded-md object-cover">
-                    <div class="flex-1">
-                        <h4 class="text-lg font-semibold">${video.title}</h4>
+                    <div class="flex-1 flex items-center">
+                        <h4 class="text-lg font-semibold mr-2">${video.title}</h4>
+                        <button onclick="event.stopPropagation(); copyL402Uri('${video.l402_info_uri}')" 
+                            class="text-gray-500 hover:text-indigo-600 focus:outline-none" 
+                            title="Copy L402 URI">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </button>
                     </div>
                     <div class="flex justify-end">
-                        <button id="copyButton${index}" 
-                            onclick="event.stopPropagation(); copyL402Uri('${video.l402_info_uri}')"
-                            class="mr-1 bg-indigo-600 text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
-                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
-                            transition duration-150 ease-in-out relative">
-                            Copy L402 URI
-                        </button>
-
                         <button id="postOnXButton${index}"
-                            onclick="event.stopPropagation(); postOnX('${video.title}', ${video.price_in_cents}, '${video.external_id}')"
-                            class="mr-1 bg-black text-white py-2 px-4 rounded-md text-sm hover:bg-indigo-700 
-                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
+                            onclick="event.stopPropagation(); postOnX('${video.title}', ${video.price_in_cents}, '${video.external_id}', '${video.l402_info_uri}')"
+                            class="bg-black text-white py-2 px-4 rounded-md text-sm hover:bg-gray-800 
+                            focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 
                             transition duration-150 ease-in-out relative">
                             Post on X
                         </button>
@@ -206,6 +205,13 @@ export function initVideoList() {
                     </svg>
                 </div>
                 <div class="mt-4 hidden" id="videoDetails${index}">
+                    <div class="flex justify-end mb-2">
+                        <button onclick="confirmDeleteVideo('${video.external_id}')" class="text-red-600 hover:text-red-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
                     <form onsubmit="updateVideo(event, '${video.external_id}', ${index})" class="space-y-4">
                         <div>
                             <label for="title${index}" class="block text-sm font-medium text-gray-700">Title</label>
@@ -342,7 +348,7 @@ function copyL402Uri(url) {
 window.copyL402Uri = copyL402Uri;
 
 
-function postOnX(title, priceInCents, videoId) {
+function postOnX(title, priceInCents, videoId, l402Uri) {
     const extensionUrl = 'SHORT URL TO CHROME EXTENSION'; 
     const priceInUSD = (priceInCents / 100).toFixed(2);
     const videoUrl = `https://blockbuster.fewsats.com/video/${videoId}`;
@@ -350,6 +356,8 @@ function postOnX(title, priceInCents, videoId) {
     const postText = `Get access to my latest content: "${title}"
 
 💰 Price: $${priceInUSD} USD
+
+${l402Uri}
 
 One extension away from the best exclusive content: ${extensionUrl}
 
@@ -415,4 +423,50 @@ function updateVideoInList(index, updatedVideo) {
 
 // Make updateVideo globally accessible
 window.updateVideo = updateVideo;
+
+async function confirmDeleteVideo(externalId) {
+    const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
+        await deleteVideo(externalId);
+    }
+}
+
+async function deleteVideo(externalId) {
+    try {
+        const response = await fetch(`/video/${externalId}`, {
+            method: 'DELETE',
+        });
+
+        if (response.ok) {
+            Swal.fire(
+                'Deleted!',
+                'Your video has been deleted.',
+                'success'
+            );
+            // Refresh the video list
+            initVideoList();
+        } else {
+            throw new Error('Failed to delete video');
+        }
+    } catch (error) {
+        console.error('Error deleting video:', error);
+        Swal.fire(
+            'Error',
+            'Failed to delete the video',
+            'error'
+        );
+    }
+}
+
+// Make confirmDeleteVideo globally accessible
+window.confirmDeleteVideo = confirmDeleteVideo;
 
